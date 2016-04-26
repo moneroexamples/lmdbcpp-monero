@@ -129,6 +129,9 @@ namespace xmreg
     time_t
     to_time_t(pt::ptime t);
 
+    string
+    read(string filename);
+
 }
 
 #endif //XMREG01_TOOLS_H

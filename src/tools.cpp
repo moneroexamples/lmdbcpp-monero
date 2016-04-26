@@ -534,4 +534,18 @@ namespace xmreg
         return time_t(x);
     }
 
+    string
+    read(string filename)
+    {
+        if (!bf::exists(bf::path(filename)))
+        {
+            cerr << "File does not exist: " << filename << endl;
+            return string();
+        }
+
+        std::ifstream t(filename);
+        return string(std::istreambuf_iterator<char>(t),
+                      std::istreambuf_iterator<char>());
+    }
+
 }

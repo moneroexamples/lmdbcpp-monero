@@ -5,17 +5,15 @@
 #include "ext/lmdb++.h"
 
 
-using boost::filesystem::path;
 using epee::string_tools::pod_to_hex;
+using boost::filesystem::path;
 
 using namespace std;
 
-
-// needed for log system of momero
+// needed for log system of monero
 namespace epee {
     unsigned int g_test_dbg_lock_sleep = 0;
 }
-
 
 int main(int ac, const char* av[])  {
 
@@ -74,9 +72,18 @@ int main(int ac, const char* av[])  {
 
     cout << "Current blockchain height:" << height << endl;
 
-    uint64_t  start_height = 1033838UL;
-    //uint64_t  start_height = 0UL;
+    //uint64_t  start_height = 1033838UL;
+    uint64_t  start_height = 0UL;
 
+    string last_height_str = xmreg::read("./last_height.txt");
+
+    if (!last_height_str.empty())
+    {
+        boost::trim(last_height_str);
+        start_height = boost::lexical_cast<uint64_t>(last_height_str) - 1;
+    }
+
+    cout << start_height << endl;
 
     /* Create and open the LMDB environment: */
     auto env = lmdb::env::create();
@@ -85,13 +92,13 @@ int main(int ac, const char* av[])  {
     env.open("/tmp", MDB_CREATE, 0664);
 
 
-    for (uint64_t i = start_height; i < height; ++i)
+    for (uint64_t blk_height = start_height; blk_height < height; ++blk_height)
     {
         cryptonote::block blk;
 
         try
         {
-            blk = core_storage.get_db().get_block_from_height(i);
+            blk = core_storage.get_db().get_block_from_height(blk_height);
         }
         catch (std::exception &e) {
             cerr << e.what() << endl;
@@ -126,7 +133,7 @@ int main(int ac, const char* av[])  {
 
             if (!key_images.empty())
             {
-                cout << "block_height: " << i
+                cout << "block_height: " << blk_height
                      << " key images size: " << key_images.size()
                      << endl;
             }
@@ -147,6 +154,11 @@ int main(int ac, const char* av[])  {
         }
 
         wtxn.commit();
+
+        {
+            ofstream out_file("./last_height.txt");
+            out_file << blk_height;
+        }
 
 
 
