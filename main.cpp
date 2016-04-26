@@ -87,7 +87,7 @@ int main(int ac, const char* av[])  {
 
     /* Create and open the LMDB environment: */
     auto env = lmdb::env::create();
-    env.set_mapsize(1UL * 1024UL * 1024UL * 1024UL); /* 1 GiB */
+    env.set_mapsize(5UL * 1024UL * 1024UL * 1024UL); /* 5 GiB */
     env.set_max_dbs(2);
     env.open("/tmp", MDB_CREATE, 0664);
 
