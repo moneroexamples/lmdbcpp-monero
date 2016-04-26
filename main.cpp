@@ -189,7 +189,7 @@ int main(int ac, const char* av[])  {
 //    cursor.close();
 //    rtxn.abort();
 
-    lmdb::val key  {"c12499bffee504e9d95451b48c52631ee59ab28c5d702357c0d6ada536c3934f"};
+    lmdb::val key  {"f83301b08f23800a928aa50bafaca5e20135b6cd9cb7603585199dcd0d30e9b7"};
     lmdb::val data2 ;
 
     auto rtxn = lmdb::txn::begin(env, nullptr, MDB_RDONLY);
