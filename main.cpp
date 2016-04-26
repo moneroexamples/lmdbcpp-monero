@@ -91,6 +91,8 @@ int main(int ac, const char* av[])  {
     env.set_max_dbs(2);
     env.open("/tmp", MDB_CREATE, 0664);
 
+    uint64_t tx_idx {0};
+
 
     for (uint64_t blk_height = start_height; blk_height < height; ++blk_height)
     {
@@ -131,7 +133,7 @@ int main(int ac, const char* av[])  {
 
             vector<cryptonote::txin_to_key> key_images = xmreg::get_key_images(tx);
 
-            if (!key_images.empty())
+            if (!key_images.empty() && tx_idx % 100 == 0)
             {
                 cout << "block_height: " << blk_height
                      << " key images size: " << key_images.size()
@@ -140,9 +142,6 @@ int main(int ac, const char* av[])  {
 
             for (const cryptonote::txin_to_key& key_image: key_images)
             {
-
-
-
                 string key_img_str = pod_to_hex(key_image.k_image);
 
                 lmdb::val key   {key_img_str};
@@ -150,6 +149,8 @@ int main(int ac, const char* av[])  {
 
                 dbi.put(wtxn, key, data2);
             }
+
+            ++tx_idx;
 
         }
 

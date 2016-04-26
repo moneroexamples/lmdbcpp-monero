@@ -18,6 +18,7 @@
 
 #include <string>
 #include <vector>
+#include <functional>
 
 
 /**
@@ -113,7 +114,13 @@ namespace xmreg
                    crypto::hash& payment_id,
                    crypto::hash8& payment_id8);
 
-
+    bool
+    for_all_tx(Blockchain& core_storage,
+               uint64_t start_height,
+               uint64_t end_height,
+               function<bool(const block& blk,
+                             const transaction& tx,
+                             const crypto::hash& tx_hash)> f);
 
     inline void
     enable_monero_log() {

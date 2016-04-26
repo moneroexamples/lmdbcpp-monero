@@ -494,6 +494,33 @@ namespace xmreg
     }
 
 
+    bool
+    for_all_txs(Blockchain& core_storage,
+                uint64_t start_height,
+                uint64_t end_height,
+                function<bool(const block& blk,
+                              const transaction& tx,
+                              const crypto::hash& tx_hash)> f)
+    {
+        for (uint64_t blk_height = start_height; blk_height < end_height; ++blk_height)
+        {
+            block _block = core_storage.get_db().get_block_from_height(blk_height);
+
+            for (const crypto::hash& _tx_hash: _block.tx_hashes)
+            {
+                transaction _tx = core_storage.get_db().get_tx(_tx_hash);
+
+                if (!f(_block, _tx, _tx_hash))
+                {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+
 
     /**
      * Rough estimate of block height from the time provided
