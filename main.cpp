@@ -189,13 +189,13 @@ int main(int ac, const char* av[])  {
 //    cursor.close();
 //    rtxn.abort();
 
-    lmdb::val key   {"c12499bffee504e9d95451b48c52631ee59ab28c5d702357c0d6ada536c3934f"};
+    lmdb::val key  {"c12499bffee504e9d95451b48c52631ee59ab28c5d702357c0d6ada536c3934f"};
     lmdb::val data2 ;
 
     auto rtxn = lmdb::txn::begin(env, nullptr, MDB_RDONLY);
     auto dbi = lmdb::dbi::open(rtxn, "key_images");
 
-    if (!dbi.get(rtxn, key, data2))
+    if (dbi.get(rtxn, key, data2))
     {
 
         string key_img(key.data(), key.size());
