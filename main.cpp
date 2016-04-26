@@ -170,23 +170,44 @@ int main(int ac, const char* av[])  {
 
 
 
-    /* Fetch key/value pairs in a read-only transaction: */
+//    /* Fetch key/value pairs in a read-only transaction: */
+//    auto rtxn = lmdb::txn::begin(env, nullptr, MDB_RDONLY);
+//    auto dbi = lmdb::dbi::open(rtxn, "key_images");
+//    auto cursor = lmdb::cursor::open(rtxn, dbi);
+//
+//    lmdb::val key ;
+//    lmdb::val data2;
+//    while (cursor.get(key, data2, MDB_NEXT)) {
+//        //std::printf("key: '%s', value: '%s'\n", key.c_str(), value.c_str());
+//
+//        cout << "key_image: " << string(key.data(), key.size())
+//             << " tx_hash: "   <<   string(data2.data(), data2.size())
+//             << endl;
+//
+//
+//    }
+//    cursor.close();
+//    rtxn.abort();
+
+    lmdb::val key   {"c12499bffee504e9d95451b48c52631ee59ab28c5d702357c0d6ada536c3934f"};
+    lmdb::val data2 ;
+
     auto rtxn = lmdb::txn::begin(env, nullptr, MDB_RDONLY);
     auto dbi = lmdb::dbi::open(rtxn, "key_images");
-    auto cursor = lmdb::cursor::open(rtxn, dbi);
 
-    lmdb::val key ;
-    lmdb::val data2;
-    while (cursor.get(key, data2, MDB_NEXT)) {
-        //std::printf("key: '%s', value: '%s'\n", key.c_str(), value.c_str());
+    if (!dbi.get(rtxn, key, data2))
+    {
 
-        cout << "key_image: " << string(key.data(), key.size())
-             << " tx_hash: "   <<   string(data2.data(), data2.size())
-             << endl;
+        string key_img(key.data(), key.size());
+        string tx_hash(data2.data(), data2.size());
 
-
+        fmt::print("Key image {:s} found in tx {:s}\n", key, tx_hash);
     }
-    cursor.close();
+    else
+    {
+        fmt::print("Key image {:s} not found\n", key);
+    }
+
     rtxn.abort();
 
 
