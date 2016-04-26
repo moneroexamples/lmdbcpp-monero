@@ -1,39 +1,78 @@
+#include "src/MicroCore.h"
+#include "src/CmdLineOptions.h"
 
-
+#include "ext/format.h"
 #include "ext/lmdb++.h"
 
-#include <iostream>
+using boost::filesystem::path;
 
 using namespace std;
 
-
-const char* const LMDB_SPENT_KEYS = "spent_keys";
-
-
-void test_monero()
-{
-    auto env = lmdb::env::create();
-    env.set_max_dbs(20);
-
-    env.open("/home/mwo/.bitmonero/lmdb", MDB_RDONLY, 0664);
-
-    auto rtxn = lmdb::txn::begin(env, nullptr, MDB_RDONLY);
-
-    auto dbi = lmdb::dbi::open(rtxn, LMDB_SPENT_KEYS);
-
-    /* Fetch key/value pairs in a read-only transaction: */
-   // auto rtxn = lmdb::txn::begin(env, nullptr, MDB_RDONLY);
-    auto cursor = lmdb::cursor::open(rtxn, dbi);
-    std::string key, value;
-    while (cursor.get(key, value, MDB_NEXT)) {
-        std::printf("key: '%s', value: '%s'\n", key.c_str(), value.c_str());
-    }
-
-    cursor.close();
-    rtxn.abort();
+// needed for log system of momero
+namespace epee {
+    unsigned int g_test_dbg_lock_sleep = 0;
 }
 
-int main() {
+
+int main(int ac, const char* av[])  {
+
+
+    // get command line options
+    xmreg::CmdLineOptions opts {ac, av};
+
+    auto help_opt = opts.get_option<bool>("help");
+
+    // if help was chosen, display help text and finish
+    if (*help_opt)
+    {
+        return 0;
+    }
+
+    // get other options
+    auto bc_path_opt      = opts.get_option<string>("bc-path");
+    auto testnet_opt      = opts.get_option<bool>("testnet");
+
+
+    bool testnet        = *testnet_opt ;
+
+
+    path blockchain_path;
+
+    if (!xmreg::get_blockchain_path(bc_path_opt, blockchain_path))
+    {
+        // if problem obtaining blockchain path, finish.
+        return 1;
+    }
+
+
+    fmt::print("Blockchain path: {:s}\n", blockchain_path);
+
+    // enable basic monero log output
+    xmreg::enable_monero_log();
+
+    // create instance of our MicroCore
+    xmreg::MicroCore mcore;
+
+    // initialize the core using the blockchain path
+    if (!mcore.init(blockchain_path.string()))
+    {
+        cerr << "Error accessing blockchain." << endl;
+        return 1;
+    }
+
+    // get the high level cryptonote::Blockchain object to interact
+    // with the blockchain lmdb database
+    cryptonote::Blockchain& core_storage = mcore.get_core();
+
+
+    // get the current blockchain height. Just to check
+    // if it reads ok.
+    uint64_t height = core_storage.get_current_blockchain_height();
+
+    cout << "Current blockchain height:" << height << endl;
+
+
+
 
     /* Create and open the LMDB environment: */
     auto env = lmdb::env::create();
@@ -117,7 +156,7 @@ int main() {
     // test access to lmdb of monero
 
 
-    test_monero();
+   // test_monero();
 
 
     cout << "Hello, World!" << endl;
