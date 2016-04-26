@@ -15,6 +15,8 @@ namespace epee {
     unsigned int g_test_dbg_lock_sleep = 0;
 }
 
+static const char* LAST_HEIGHT_FILE = "/home/mwo/Desktop/last_height.txt";
+
 int main(int ac, const char* av[])  {
 
 
@@ -75,7 +77,7 @@ int main(int ac, const char* av[])  {
     //uint64_t  start_height = 1033838UL;
     uint64_t  start_height = 0UL;
 
-    string last_height_str = xmreg::read("./last_height.txt");
+    string last_height_str = xmreg::read(LAST_HEIGHT_FILE);
 
     if (!last_height_str.empty())
     {
@@ -89,7 +91,7 @@ int main(int ac, const char* av[])  {
     auto env = lmdb::env::create();
     env.set_mapsize(5UL * 1024UL * 1024UL * 1024UL); /* 5 GiB */
     env.set_max_dbs(2);
-    env.open("/tmp", MDB_CREATE, 0664);
+    env.open("/home/mwo/Desktop", MDB_CREATE, 0664);
 
     uint64_t tx_idx {0};
 
@@ -124,6 +126,9 @@ int main(int ac, const char* av[])  {
         auto wtxn = lmdb::txn::begin(env);
         auto dbi = lmdb::dbi::open(wtxn, "key_images", MDB_CREATE);
 
+        //auto wtxn2 = lmdb::txn::begin(env);
+        auto dbi2 = lmdb::dbi::open(wtxn, "public_keys", MDB_CREATE | MDB_DUPSORT | MDB_DUPFIXED);
+
 
         for (const cryptonote::transaction& tx : txs)
         {
@@ -131,9 +136,12 @@ int main(int ac, const char* av[])  {
 
             string tx_hash_str = pod_to_hex(tx_hash);
 
-            vector<cryptonote::txin_to_key> key_images = xmreg::get_key_images(tx);
+             vector<cryptonote::txin_to_key> key_images = xmreg::get_key_images(tx);
 
-            if (!key_images.empty() && tx_idx % 100 == 0)
+
+            vector<pair<cryptonote::txout_to_key, uint64_t>> outputs = xmreg::get_ouputs(tx);
+
+            if (!key_images.empty() && tx_idx % 10 == 0)
             {
                 cout << "block_height: " << blk_height
                      << " key images size: " << key_images.size()
@@ -150,14 +158,23 @@ int main(int ac, const char* av[])  {
                 dbi.put(wtxn, key, data2);
             }
 
+            for (const pair<cryptonote::txout_to_key, uint64_t>& output: outputs)
+            {
+                lmdb::val key   {pod_to_hex(output.first.key)};
+                lmdb::val data2 {tx_hash_str};
+
+                dbi2.put(wtxn, key, data2);
+            }
+
             ++tx_idx;
 
         }
 
         wtxn.commit();
+       // wtxn2.commit();
 
         {
-            ofstream out_file("./last_height.txt");
+            ofstream out_file(LAST_HEIGHT_FILE);
             out_file << blk_height;
         }
 
