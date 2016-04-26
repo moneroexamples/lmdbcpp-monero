@@ -201,7 +201,7 @@ int main(int ac, const char* av[])  {
         string key_img(key.data(), key.size());
         string tx_hash(data2.data(), data2.size());
 
-        fmt::print("Key image {:s} found in tx {:s}\n", key, tx_hash);
+        fmt::print("Key image {:s} found in tx {:s}\n", key_img, tx_hash);
     }
     else
     {
