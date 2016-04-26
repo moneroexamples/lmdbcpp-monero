@@ -279,6 +279,222 @@ namespace xmreg
     }
 
 
+
+    uint64_t
+    sum_money_in_outputs(const transaction& tx)
+    {
+        uint64_t sum_xmr {0};
+
+        for (const tx_out& txout: tx.vout)
+        {
+            sum_xmr += txout.amount;
+        }
+
+        return sum_xmr;
+    }
+
+
+
+    uint64_t
+    sum_money_in_inputs(const transaction& tx)
+    {
+        uint64_t sum_xmr {0};
+
+        size_t input_no = tx.vin.size();
+
+        for (size_t i = 0; i < input_no; ++i)
+        {
+
+            if(tx.vin[i].type() != typeid(cryptonote::txin_to_key))
+            {
+                continue;
+            }
+
+            // get tx input key
+            const cryptonote::txin_to_key& tx_in_to_key
+                    = boost::get<cryptonote::txin_to_key>(tx.vin[i]);
+
+            sum_xmr += tx_in_to_key.amount;
+        }
+
+        return sum_xmr;
+    }
+
+
+
+    array<uint64_t, 2>
+    sum_money_in_tx(const transaction& tx)
+    {
+        array<uint64_t, 2> sum_xmr;
+
+        sum_xmr[0] = sum_money_in_inputs(tx);
+        sum_xmr[1] = sum_money_in_outputs(tx);
+
+        return sum_xmr;
+    };
+
+
+    array<uint64_t, 2>
+    sum_money_in_txs(const vector<transaction>& txs)
+    {
+        array<uint64_t, 2> sum_xmr {0,0};
+
+        for (const transaction& tx: txs)
+        {
+            sum_xmr[0] += sum_money_in_inputs(tx);
+            sum_xmr[1] += sum_money_in_outputs(tx);
+        }
+
+        return sum_xmr;
+    };
+
+
+    uint64_t
+    sum_fees_in_txs(const vector<transaction>& txs)
+    {
+        uint64_t fees_sum {0};
+
+        for (const transaction& tx: txs)
+        {
+            fees_sum += get_tx_fee(tx);
+        }
+
+        return fees_sum;
+    }
+
+
+
+    vector<pair<txout_to_key, uint64_t>>
+    get_ouputs(const transaction& tx)
+    {
+        vector<pair<txout_to_key, uint64_t>> outputs;
+
+        for (const tx_out& txout: tx.vout)
+        {
+            if (txout.target.type() != typeid(txout_to_key))
+            {
+                continue;
+            }
+
+            // get tx input key
+            const txout_to_key& txout_key
+                    = boost::get<cryptonote::txout_to_key>(txout.target);
+
+            outputs.push_back(make_pair(txout_key, txout.amount));
+        }
+
+        return outputs;
+
+
+    };
+
+    uint64_t
+    get_mixin_no(const transaction& tx)
+    {
+        uint64_t mixin_no {0};
+
+        size_t input_no = tx.vin.size();
+
+        for (size_t i = 0; i < input_no; ++i)
+        {
+
+            if(tx.vin[i].type() != typeid(cryptonote::txin_to_key))
+            {
+                continue;
+            }
+
+            // get tx input key
+            const txin_to_key& tx_in_to_key
+                    = boost::get<cryptonote::txin_to_key>(tx.vin[i]);
+
+            mixin_no = tx_in_to_key.key_offsets.size();
+
+            // look for first mixin number.
+            // all inputs in a single transaction have same number
+            if (mixin_no > 0)
+            {
+                break;
+            }
+        }
+
+        return mixin_no;
+    }
+
+    vector<uint64_t>
+    get_mixin_no_in_txs(const vector<transaction>& txs)
+    {
+        vector<uint64_t> mixin_no;
+
+        for (const transaction& tx: txs)
+        {
+            mixin_no.push_back(get_mixin_no(tx));
+        }
+
+        return mixin_no;
+    }
+
+
+    vector<txin_to_key>
+    get_key_images(const transaction& tx)
+    {
+        vector<txin_to_key> key_images;
+
+        size_t input_no = tx.vin.size();
+
+        for (size_t i = 0; i < input_no; ++i)
+        {
+
+            if(tx.vin[i].type() != typeid(txin_to_key))
+            {
+                continue;
+            }
+
+            // get tx input key
+            const txin_to_key& tx_in_to_key
+                    = boost::get<cryptonote::txin_to_key>(tx.vin[i]);
+
+            key_images.push_back(tx_in_to_key);
+        }
+
+        return key_images;
+    }
+
+    bool
+    get_payment_id(const transaction& tx,
+                   crypto::hash& payment_id,
+                   crypto::hash8& payment_id8)
+    {
+
+        payment_id = null_hash;
+        payment_id8 = null_hash8;
+
+        std::vector<tx_extra_field> tx_extra_fields;
+
+        if(!parse_tx_extra(tx.extra, tx_extra_fields))
+        {
+            return false;
+        }
+
+        tx_extra_nonce extra_nonce;
+
+        if (find_tx_extra_field_by_type(tx_extra_fields, extra_nonce))
+        {
+            // first check for encripted id and then for normal one
+            if(get_encrypted_payment_id_from_tx_extra_nonce(extra_nonce.nonce, payment_id8))
+            {
+                return true;
+            }
+            else if (get_payment_id_from_tx_extra_nonce(extra_nonce.nonce, payment_id))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+
+
     /**
      * Rough estimate of block height from the time provided
      *

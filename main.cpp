@@ -4,9 +4,12 @@
 #include "ext/format.h"
 #include "ext/lmdb++.h"
 
+
 using boost::filesystem::path;
+using epee::string_tools::pod_to_hex;
 
 using namespace std;
+
 
 // needed for log system of momero
 namespace epee {
@@ -71,7 +74,8 @@ int main(int ac, const char* av[])  {
 
     cout << "Current blockchain height:" << height << endl;
 
-
+    uint64_t  start_height = 1033838UL;
+    //uint64_t  start_height = 0UL;
 
 
     /* Create and open the LMDB environment: */
@@ -80,83 +84,98 @@ int main(int ac, const char* av[])  {
     env.set_max_dbs(2);
     env.open("/tmp", MDB_CREATE, 0664);
 
-    /* Insert some key/value pairs in a write transaction: */
-    auto wtxn = lmdb::txn::begin(env);
-    auto dbi = lmdb::dbi::open(wtxn, "personal", MDB_DUPSORT | MDB_CREATE);
 
-    dbi.put(wtxn, "username", "jhacker");
-    dbi.put(wtxn, "email", "jhacker@example.org");
-    dbi.put(wtxn, "email", "mwo@example.org");
-    dbi.put(wtxn, "fullname", "Middle name");
-    dbi.put(wtxn, "job", "accountant");
-    dbi.put(wtxn, "email", "dddd@example.org");
-    dbi.put(wtxn, "fullname", "J. Random Hacker");
-    dbi.put(wtxn, "job", "programmer");
-    dbi.put(wtxn, "fullname", "Test Name");
-    wtxn.commit();
+    for (uint64_t i = start_height; i < height; ++i)
+    {
+        cryptonote::block blk;
+
+        try
+        {
+            blk = core_storage.get_db().get_block_from_height(i);
+        }
+        catch (std::exception &e) {
+            cerr << e.what() << endl;
+            continue;
+        }
+
+        // get all transactions in the block found
+        // initialize the first list with transaction for solving
+        // the block i.e. coinbase.
+        list<cryptonote::transaction> txs {blk.miner_tx};
+        list<crypto::hash> missed_txs;
+
+        if (!mcore.get_core().get_transactions(blk.tx_hashes, txs, missed_txs))
+        {
+            cerr << "Cant find transactions in block: " << height << endl;
+            return 1;
+        }
+
+
+        /* Insert some key/value pairs in a write transaction: */
+        auto wtxn = lmdb::txn::begin(env);
+        auto dbi = lmdb::dbi::open(wtxn, "key_images", MDB_CREATE);
+
+
+        for (const cryptonote::transaction& tx : txs)
+        {
+            crypto::hash tx_hash = cryptonote::get_transaction_hash(tx);
+
+            string tx_hash_str = pod_to_hex(tx_hash);
+
+            vector<cryptonote::txin_to_key> key_images = xmreg::get_key_images(tx);
+
+            if (!key_images.empty())
+            {
+                cout << "block_height: " << i
+                     << " key images size: " << key_images.size()
+                     << endl;
+            }
+
+            for (const cryptonote::txin_to_key& key_image: key_images)
+            {
+
+
+
+                string key_img_str = pod_to_hex(key_image.k_image);
+
+                lmdb::val key   {key_img_str};
+                lmdb::val data2 {tx_hash_str};
+
+                dbi.put(wtxn, key, data2);
+            }
+
+        }
+
+        wtxn.commit();
+
+
+
+    } // for (uint64_t i = start_height; i < height; ++i)
+
+    /* Insert some key/value pairs in a write transaction: */
+    //auto wtxn = lmdb::txn::begin(env);
+
+
 
     /* Fetch key/value pairs in a read-only transaction: */
     auto rtxn = lmdb::txn::begin(env, nullptr, MDB_RDONLY);
+    auto dbi = lmdb::dbi::open(rtxn, "key_images");
     auto cursor = lmdb::cursor::open(rtxn, dbi);
-    std::string key, value;
-    while (cursor.get(key, value, MDB_NEXT)) {
-        std::printf("key: '%s', value: '%s'\n", key.c_str(), value.c_str());
+
+    lmdb::val key ;
+    lmdb::val data2;
+    while (cursor.get(key, data2, MDB_NEXT)) {
+        //std::printf("key: '%s', value: '%s'\n", key.c_str(), value.c_str());
+
+        cout << "key_image: " << string(key.data(), key.size())
+             << " tx_hash: "   <<   string(data2.data(), data2.size())
+             << endl;
+
+
     }
     cursor.close();
     rtxn.abort();
 
-    lmdb::val key1 {"email"};
-    lmdb::val  data2;
-    string  data3;
-
-
-    //
-    // get a single value
-    //
-
-    rtxn = lmdb::txn::begin(env, nullptr, MDB_RDONLY);
-    dbi.get(rtxn, key1, data2);
-    rtxn.abort();
-
-
-    cout << "Found key: " << string(data2.data(), data2.size()) << endl;
-
-    cout << endl;
-
-    //
-    // retrieve multiple items for same key
-    //
-
-    rtxn = lmdb::txn::begin(env, nullptr, MDB_RDONLY);
-    cursor = lmdb::cursor::open(rtxn, dbi);
-
-    lmdb::val key2 {"fullname"}, value2;
-
-    // set cursor the the first item
-    cursor.get(key2, value2, MDB_SET);
-
-    // process the first item
-    cout << "key2: " << string(key2.data(), key2.size())
-         << ", value2: " << string(value2.data(), value2.size()) << endl;
-
-    // process other values for the same key
-    while (cursor.get(key2, value2, MDB_NEXT_DUP)) {
-        cout << "key2: " << string(key2.data(), key2.size())
-             << ", value2: " << string(value2.data(), value2.size()) << endl;
-    }
-
-    cursor.close();
-    rtxn.abort();
-
-
-    cout << endl;
-
-    env.close();
-
-    // test access to lmdb of monero
-
-
-   // test_monero();
 
 
     cout << "Hello, World!" << endl;
