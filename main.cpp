@@ -88,15 +88,8 @@ int main(int ac, const char* av[])  {
 
     cout << start_height << endl;
 
-    /* Create and open the LMDB environment: */
-    auto env = lmdb::env::create();
-    env.set_mapsize(10UL * 1024UL * 1024UL * 1024UL); /* 5 GiB */
-    env.set_max_dbs(2);
-    env.open("/home/mwo/Desktop", MDB_CREATE, 0664);
 
     xmreg::MyLMDB mylmdb {"/home/mwo/Desktop"};
-
-    uint64_t tx_idx {0};
 
 
     for (uint64_t blk_height = start_height; blk_height < height; ++blk_height)
@@ -107,9 +100,10 @@ int main(int ac, const char* av[])  {
         {
             blk = core_storage.get_db().get_block_from_height(blk_height);
         }
-        catch (std::exception &e) {
+        catch (std::exception &e)
+        {
             cerr << e.what() << endl;
-            continue;
+            return 1;
         }
 
         // get all transactions in the block found
@@ -124,57 +118,26 @@ int main(int ac, const char* av[])  {
             return 1;
         }
 
-
-        /* Insert some key/value pairs in a write transaction: */
-        auto wtxn = lmdb::txn::begin(env);
-        auto dbi = lmdb::dbi::open(wtxn, "key_images", MDB_CREATE);
-
-        //auto wtxn2 = lmdb::txn::begin(env);
-        auto dbi2 = lmdb::dbi::open(wtxn, "public_keys", MDB_CREATE | MDB_DUPSORT | MDB_DUPFIXED);
+        if (blk_height % 10 == 0)
+        {
+            fmt::print("analyzing blk {:d}/{:d}\n", blk_height, height);
+        }
 
 
         for (const cryptonote::transaction& tx : txs)
         {
-            crypto::hash tx_hash = cryptonote::get_transaction_hash(tx);
-
-            string tx_hash_str = pod_to_hex(tx_hash);
-
-             vector<cryptonote::txin_to_key> key_images = xmreg::get_key_images(tx);
-
-
-            vector<pair<cryptonote::txout_to_key, uint64_t>> outputs = xmreg::get_ouputs(tx);
-
-            if (!key_images.empty() && tx_idx % 10 == 0)
+            if (!mylmdb.write_key_images(tx))
             {
-                cout << "block_height: " << blk_height
-                     << " key images size: " << key_images.size()
-                     << endl;
+                cerr << "write_key_images failed in blk " << blk_height << endl;
+                return 1;
             }
 
-            for (const cryptonote::txin_to_key& key_image: key_images)
+            if (!mylmdb.write_public_keys(tx))
             {
-                string key_img_str = pod_to_hex(key_image.k_image);
-
-                lmdb::val key   {key_img_str};
-                lmdb::val data2 {tx_hash_str};
-
-                dbi.put(wtxn, key, data2);
+                cerr << "write_public_keys failed in blk " << blk_height << endl;
+                return 1;
             }
-
-            for (const pair<cryptonote::txout_to_key, uint64_t>& output: outputs)
-            {
-                lmdb::val key   {pod_to_hex(output.first.key)};
-                lmdb::val data2 {tx_hash_str};
-
-                dbi2.put(wtxn, key, data2);
-            }
-
-            ++tx_idx;
-
         }
-
-        wtxn.commit();
-       // wtxn2.commit();
 
         {
             ofstream out_file(LAST_HEIGHT_FILE);
@@ -187,8 +150,6 @@ int main(int ac, const char* av[])  {
 
     /* Insert some key/value pairs in a write transaction: */
     //auto wtxn = lmdb::txn::begin(env);
-
-
 
 //    /* Fetch key/value pairs in a read-only transaction: */
 //    auto rtxn = lmdb::txn::begin(env, nullptr, MDB_RDONLY);
@@ -212,23 +173,23 @@ int main(int ac, const char* av[])  {
     lmdb::val key  {"f83301b08f23800a928aa50bafaca5e20135b6cd9cb7603585199dcd0d30e9b7"};
     lmdb::val data2 ;
 
-    auto rtxn = lmdb::txn::begin(env, nullptr, MDB_RDONLY);
-    auto dbi = lmdb::dbi::open(rtxn, "key_images");
-
-    if (dbi.get(rtxn, key, data2))
-    {
-
-        string key_img(key.data(), key.size());
-        string tx_hash(data2.data(), data2.size());
-
-        fmt::print("Key image {:s} found in tx {:s}\n", key_img, tx_hash);
-    }
-    else
-    {
-        fmt::print("Key image {:s} not found\n", key);
-    }
-
-    rtxn.abort();
+//    auto rtxn = lmdb::txn::begin(env, nullptr, MDB_RDONLY);
+//    auto dbi = lmdb::dbi::open(rtxn, "key_images");
+//
+//    if (dbi.get(rtxn, key, data2))
+//    {
+//
+//        string key_img(key.data(), key.size());
+//        string tx_hash(data2.data(), data2.size());
+//
+//        fmt::print("Key image {:s} found in tx {:s}\n", key_img, tx_hash);
+//    }
+//    else
+//    {
+//        fmt::print("Key image {:s} not found\n", key);
+//    }
+//
+//    rtxn.abort();
 
 
 
