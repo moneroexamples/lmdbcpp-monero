@@ -162,30 +162,69 @@ namespace xmreg
             return true;
         }
 
-        template<typename T>
-        vector<T> search(const T& key)
+//        template<typename T>
+//        vector<T> search(const T& key)
+//        {
+//            vector<T> out;
+//
+//            lmdb::txn    rtxn {nullptr};
+//            lmdb::dbi    rdbi {0};
+//            lmdb::cursor cr   {nullptr};
+//
+//            unsigned int flags = MDB_DUPSORT | MDB_DUPFIXED;
+//
+//            try
+//            {
+//                rtxn = lmdb::txn::begin(m_env, nullptr, MDB_RDONLY);
+//                rdbi = lmdb::dbi::open(rtxn, "key_images", flags);
+//                cr   = lmdb::cursor::open(rtxn, rdbi);
+//            }
+//            catch (lmdb::error& e )
+//            {
+//                cerr << e.what() << endl;
+//                return out;
+//            }
+//
+//            return out;
+//        }
+
+        static uint64_t
+        get_blockchain_height(string blk_path = "/home/mwo/.blockchain/lmdb")
         {
-            vector<T> out;
-
-            lmdb::txn    rtxn {nullptr};
-            lmdb::dbi    rdbi {0};
-            lmdb::cursor cr   {nullptr};
-
-            unsigned int flags = MDB_RDONLY | MDB_DUPSORT | MDB_DUPFIXED;
+            uint64_t height {0};
 
             try
             {
-                rtxn = lmdb::txn::begin(m_env, nullptr, MDB_RDONLY);
-                rdbi = lmdb::dbi::open(rtxn, "key_images", flags);
-                cr   = lmdb::cursor::open(rtxn, rdbi);
+                auto env = lmdb::env::create();
+                env.set_mapsize(DEFAULT_MAPSIZE * 3);
+                env.set_max_dbs(20);
+                env.open(blk_path.c_str(), MDB_CREATE, 0664);
+
+                //auto rtxn = lmdb::txn::begin(env, nullptr, MDB_RDONLY);
+                auto rtxn = lmdb::txn::begin(env, nullptr);
+                auto rdbi = lmdb::dbi::open(rtxn, "blocks");
+
+                MDB_stat stats = rdbi.stat(rtxn);
+
+                height = static_cast<uint64_t>(stats.ms_entries);
+
+                rtxn.abort();
             }
-            catch (lmdb::error& e )
+            catch (lmdb::error& e)
             {
                 cerr << e.what() << endl;
-                return out;
+                return height;
+            }
+            catch (exception& e)
+            {
+                cerr << e.what() << endl;
+                return height;
             }
 
-            return out;
+            cout << height << endl;
+
+            return height;
+
         }
 
 

@@ -69,11 +69,9 @@ int main(int ac, const char* av[])  {
     cryptonote::Blockchain& core_storage = mcore.get_core();
 
 
-    // get the current blockchain height. Just to check
-    // if it reads ok.
-    uint64_t height = core_storage.get_current_blockchain_height();
+    xmreg::MyLMDB mylmdb {"/home/mwo/Desktop"};
 
-    cout << "Current blockchain height:" << height << endl;
+
 
     //uint64_t  start_height = 1033838UL;
     uint64_t  start_height = 0UL;
@@ -83,13 +81,15 @@ int main(int ac, const char* av[])  {
     if (!last_height_str.empty())
     {
         boost::trim(last_height_str);
-        start_height = boost::lexical_cast<uint64_t>(last_height_str) - 1;
+        start_height = boost::lexical_cast<uint64_t>(last_height_str);
     }
 
-    cout << start_height << endl;
 
-
-    xmreg::MyLMDB mylmdb {"/home/mwo/Desktop"};
+    // get the current blockchain height. Just to check
+    //uint64_t height =  xmreg::MyLMDB::get_blockchain_height(blockchain_path.string());
+    uint64_t height =  xmreg::MyLMDB::get_blockchain_height(blockchain_path.string());
+    //uint64_t height = core_storage.get_current_blockchain_height();
+    cout << "Current blockchain height:" << height << endl;
 
 
     for (uint64_t blk_height = start_height; blk_height < height; ++blk_height)
@@ -118,7 +118,7 @@ int main(int ac, const char* av[])  {
             return 1;
         }
 
-        if (blk_height % 10 == 0)
+        if (blk_height % 1 == 0)
         {
             fmt::print("analyzing blk {:d}/{:d}\n", blk_height, height);
         }
