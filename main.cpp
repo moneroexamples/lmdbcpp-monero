@@ -1,5 +1,6 @@
 #include "src/MicroCore.h"
 #include "src/CmdLineOptions.h"
+#include "src/mylmdb.h"
 
 #include "ext/format.h"
 #include "ext/lmdb++.h"
@@ -92,6 +93,8 @@ int main(int ac, const char* av[])  {
     env.set_mapsize(10UL * 1024UL * 1024UL * 1024UL); /* 5 GiB */
     env.set_max_dbs(2);
     env.open("/home/mwo/Desktop", MDB_CREATE, 0664);
+
+    xmreg::MyLMDB mylmdb {"/home/mwo/Desktop"};
 
     uint64_t tx_idx {0};
 
