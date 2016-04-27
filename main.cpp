@@ -5,6 +5,7 @@
 #include "ext/format.h"
 #include "ext/lmdb++.h"
 
+#include <thread>
 
 using epee::string_tools::pod_to_hex;
 using boost::filesystem::path;
@@ -71,82 +72,95 @@ int main(int ac, const char* av[])  {
 
     xmreg::MyLMDB mylmdb {"/home/mwo/Desktop"};
 
-
-
-    //uint64_t  start_height = 1033838UL;
-    uint64_t  start_height = 0UL;
-
-    string last_height_str = xmreg::read(LAST_HEIGHT_FILE);
-
-    if (!last_height_str.empty())
+    while (true)
     {
-        boost::trim(last_height_str);
-        start_height = boost::lexical_cast<uint64_t>(last_height_str);
-    }
 
+        //uint64_t  start_height = 1033838UL;
+        uint64_t  start_height = 0UL;
 
-    // get the current blockchain height. Just to check
-    //uint64_t height =  xmreg::MyLMDB::get_blockchain_height(blockchain_path.string());
-    uint64_t height =  xmreg::MyLMDB::get_blockchain_height(blockchain_path.string());
-    //uint64_t height = core_storage.get_current_blockchain_height();
-    cout << "Current blockchain height:" << height << endl;
+        string last_height_str = xmreg::read(LAST_HEIGHT_FILE);
 
-
-    for (uint64_t blk_height = start_height; blk_height < height; ++blk_height)
-    {
-        cryptonote::block blk;
-
-        try
+        if (!last_height_str.empty())
         {
-            blk = core_storage.get_db().get_block_from_height(blk_height);
-        }
-        catch (std::exception &e)
-        {
-            cerr << e.what() << endl;
-            return 1;
-        }
-
-        // get all transactions in the block found
-        // initialize the first list with transaction for solving
-        // the block i.e. coinbase.
-        list<cryptonote::transaction> txs {blk.miner_tx};
-        list<crypto::hash> missed_txs;
-
-        if (!mcore.get_core().get_transactions(blk.tx_hashes, txs, missed_txs))
-        {
-            cerr << "Cant find transactions in block: " << height << endl;
-            return 1;
-        }
-
-        if (blk_height % 1 == 0)
-        {
-            fmt::print("analyzing blk {:d}/{:d}\n", blk_height, height);
+            boost::trim(last_height_str);
+            start_height = boost::lexical_cast<uint64_t>(last_height_str);
         }
 
 
-        for (const cryptonote::transaction& tx : txs)
+        // get the current blockchain height. Just to check
+        //uint64_t height =  xmreg::MyLMDB::get_blockchain_height(blockchain_path.string());
+        uint64_t height =  xmreg::MyLMDB::get_blockchain_height(blockchain_path.string());
+        //uint64_t height = core_storage.get_current_blockchain_height();
+        cout << "Current blockchain height:" << height << endl;
+
+
+        for (uint64_t blk_height = start_height; blk_height < height; ++blk_height)
         {
-            if (!mylmdb.write_key_images(tx))
+            cryptonote::block blk;
+
+            try
             {
-                cerr << "write_key_images failed in blk " << blk_height << endl;
+                blk = core_storage.get_db().get_block_from_height(blk_height);
+            }
+            catch (std::exception &e)
+            {
+                cerr << e.what() << endl;
                 return 1;
             }
 
-            if (!mylmdb.write_public_keys(tx))
+            // get all transactions in the block found
+            // initialize the first list with transaction for solving
+            // the block i.e. coinbase.
+            list<cryptonote::transaction> txs {blk.miner_tx};
+            list<crypto::hash> missed_txs;
+
+            if (!mcore.get_core().get_transactions(blk.tx_hashes, txs, missed_txs))
             {
-                cerr << "write_public_keys failed in blk " << blk_height << endl;
+                cerr << "Cant find transactions in block: " << height << endl;
                 return 1;
             }
-        }
 
+            if (blk_height % 1 == 0)
+            {
+                fmt::print("analyzing blk {:d}/{:d}\n", blk_height, height);
+            }
+
+
+            for (const cryptonote::transaction& tx : txs)
+            {
+                if (!mylmdb.write_key_images(tx))
+                {
+                    cerr << "write_key_images failed in blk " << blk_height << endl;
+                    return 1;
+                }
+
+                if (!mylmdb.write_public_keys(tx))
+                {
+                    cerr << "write_public_keys failed in blk " << blk_height << endl;
+                    return 1;
+                }
+            }
+
+            {
+                ofstream out_file(LAST_HEIGHT_FILE);
+                out_file << blk_height;
+            }
+
+
+
+        } // for (uint64_t i = start_height; i < height; ++i)
+
+        cout << "Wait for 20 seconds " << flush;
+        for (size_t i = 0; i < 10; ++i)
         {
-            ofstream out_file(LAST_HEIGHT_FILE);
-            out_file << blk_height;
+            cout << "." << flush;
+            std::this_thread::sleep_for(std::chrono::seconds(2));
         }
 
+        cout << endl;
 
 
-    } // for (uint64_t i = start_height; i < height; ++i)
+    } //while (true)
 
     /* Insert some key/value pairs in a write transaction: */
     //auto wtxn = lmdb::txn::begin(env);
