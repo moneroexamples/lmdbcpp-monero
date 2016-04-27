@@ -162,6 +162,33 @@ namespace xmreg
             return true;
         }
 
+        template<typename T>
+        vector<T> search(const T& key)
+        {
+            vector<T> out;
+
+            lmdb::txn    rtxn {nullptr};
+            lmdb::dbi    rdbi {0};
+            lmdb::cursor cr   {nullptr};
+
+            unsigned int flags = MDB_RDONLY | MDB_DUPSORT | MDB_DUPFIXED;
+
+            try
+            {
+                rtxn = lmdb::txn::begin(m_env, nullptr, MDB_RDONLY);
+                rdbi = lmdb::dbi::open(rtxn, "key_images", flags);
+                cr   = lmdb::cursor::open(rtxn, rdbi);
+            }
+            catch (lmdb::error& e )
+            {
+                cerr << e.what() << endl;
+                return out;
+            }
+
+            return out;
+        }
+
+
 
     };
 
