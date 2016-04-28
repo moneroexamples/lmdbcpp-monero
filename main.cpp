@@ -134,9 +134,15 @@ int main(int ac, const char* av[])  {
                     return 1;
                 }
 
-                if (!mylmdb.write_public_keys(tx))
+                if (!mylmdb.write_output_public_keys(tx))
                 {
-                    cerr << "write_public_keys failed in blk " << blk_height << endl;
+                    cerr << "write_output_public_keys failed in blk " << blk_height << endl;
+                    return 1;
+                }
+
+                if (!mylmdb.write_tx_public_key(tx))
+                {
+                    cerr << "write_tx_public_key failed in blk " << blk_height << endl;
                     return 1;
                 }
 
@@ -156,6 +162,8 @@ int main(int ac, const char* av[])  {
         } // for (uint64_t i = start_height; i < height; ++i)
 
 
+        vector<string> found_txs;
+
         if (false)
         {
             string key_str;
@@ -164,7 +172,7 @@ int main(int ac, const char* av[])  {
 
             cout << "Searching for: <" << key_str << ">" << endl;
 
-            mylmdb.search(key_str, "key_images");
+            found_txs = mylmdb.search(key_str, "key_images");
         }
 
         if (false)
@@ -175,8 +183,9 @@ int main(int ac, const char* av[])  {
 
             cout << "Searching for: <" << public_key << ">" << endl;
 
-            mylmdb.search(public_key, "public_keys");
+            found_txs = mylmdb.search(public_key, "output_public_keys");
         }
+
 
         if (false)
         {
@@ -186,14 +195,29 @@ int main(int ac, const char* av[])  {
 
             cout << "Searching for: <" << to_search << ">" << endl;
 
-            mylmdb.search(to_search, "payments_id");
+            found_txs = mylmdb.search(to_search, "payments_id");
+        }
+
+        if (false)
+        {
+            string to_search;
+            cout << "Enter tx public key to find: ";
+            cin >> to_search;
+
+            cout << "Searching for: <" << to_search << ">" << endl;
+
+            found_txs = mylmdb.search(to_search, "tx_public_keys");
+        }
+
+        for (const string& found_tx: found_txs)
+        {
+            fmt::print("Found tx: {:s}\n", found_tx);
         }
 
 
+        cout << "Wait for 60 seconds " << flush;
 
-        cout << "Wait for 30 seconds " << flush;
-
-        for (size_t i = 0; i < 10; ++i)
+        for (size_t i = 0; i < 20; ++i)
         {
             cout << "." << flush;
             std::this_thread::sleep_for(std::chrono::seconds(3));
