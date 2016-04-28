@@ -162,31 +162,128 @@ namespace xmreg
             return true;
         }
 
-//        template<typename T>
-//        vector<T> search(const T& key)
-//        {
-//            vector<T> out;
-//
-//            lmdb::txn    rtxn {nullptr};
-//            lmdb::dbi    rdbi {0};
-//            lmdb::cursor cr   {nullptr};
-//
-//            unsigned int flags = MDB_DUPSORT | MDB_DUPFIXED;
-//
-//            try
-//            {
-//                rtxn = lmdb::txn::begin(m_env, nullptr, MDB_RDONLY);
-//                rdbi = lmdb::dbi::open(rtxn, "key_images", flags);
-//                cr   = lmdb::cursor::open(rtxn, rdbi);
-//            }
-//            catch (lmdb::error& e )
-//            {
-//                cerr << e.what() << endl;
-//                return out;
-//            }
-//
-//            return out;
-//        }
+        bool
+        write_payment_id(const transaction& tx)
+        {
+            crypto::hash tx_hash = get_transaction_hash(tx);
+
+            string tx_hash_str = pod_to_hex(tx_hash);
+
+            crypto::hash  payment_id;
+            crypto::hash8 payment_id8;
+
+            get_payment_id(tx, payment_id, payment_id8);
+
+            if (payment_id == null_hash)
+            {
+                return true;
+            }
+
+            unsigned int flags = MDB_CREATE | MDB_DUPSORT | MDB_DUPFIXED;
+
+            string payment_id_str = pod_to_hex(payment_id);
+
+            try
+            {
+                lmdb::txn wtxn = lmdb::txn::begin(m_env);
+                lmdb::dbi wdbi = lmdb::dbi::open(wtxn, "payments_id", flags);
+
+                cout << "Saving payiment_id: " << payment_id_str << endl;
+
+                lmdb::val payment_id_val{payment_id_str};
+                lmdb::val tx_hash_val{tx_hash_str};
+
+                wdbi.put(wtxn, payment_id_val, tx_hash_val);
+
+                wtxn.commit();
+            }
+            catch (lmdb::error& e)
+            {
+                cerr << e.what() << endl;
+                return false;
+            }
+
+            return true;
+        }
+
+        vector<string>
+        search(const string& key, const string& db_name = "key_images")
+        {
+            vector<string> out;
+
+            unsigned int flags = MDB_DUPSORT | MDB_DUPFIXED;
+
+            try
+            {
+
+                lmdb::txn rtxn  = lmdb::txn::begin(m_env, nullptr, MDB_RDONLY);
+                lmdb::dbi rdbi  = lmdb::dbi::open(rtxn, db_name.c_str(), flags);
+                lmdb::cursor cr = lmdb::cursor::open(rtxn, rdbi);
+
+                lmdb::val key_to_find{key};
+                lmdb::val tx_hash_val;
+
+                // set cursor the the first item
+                if (cr.get(key_to_find, tx_hash_val, MDB_SET))
+                {
+                    cout << key_val_to_str(key_to_find, tx_hash_val) << endl;
+
+                    out.push_back(string(tx_hash_val.data(), tx_hash_val.size()));
+
+                    // process other values for the same key
+                    while (cr.get(key_to_find, tx_hash_val, MDB_NEXT_DUP)) {
+
+                        cout << key_val_to_str(key_to_find, tx_hash_val) << endl;
+
+                        out.push_back(string(tx_hash_val.data(), tx_hash_val.size()));
+
+                    }
+                }
+
+                cr.close();
+                rtxn.abort();
+
+            }
+            catch (lmdb::error& e)
+            {
+                cerr << e.what() << endl;
+                return out;
+            }
+
+            return out;
+        }
+
+        void
+        print_all(const string& db_name)
+        {
+            unsigned int flags = MDB_DUPSORT | MDB_DUPFIXED;
+
+            try
+            {
+
+                lmdb::txn rtxn  = lmdb::txn::begin(m_env, nullptr, MDB_RDONLY);
+                lmdb::dbi rdbi  = lmdb::dbi::open(rtxn, db_name.c_str(), flags);
+                lmdb::cursor cr = lmdb::cursor::open(rtxn, rdbi);
+
+                lmdb::val key_to_find;
+                lmdb::val tx_hash_val;
+
+
+                // process other values for the same key
+                while (cr.get(key_to_find, tx_hash_val, MDB_NEXT))
+                {
+                    cout << key_val_to_str(key_to_find, tx_hash_val) << endl;
+                }
+
+                cr.close();
+                rtxn.abort();
+
+            }
+            catch (lmdb::error& e)
+            {
+                cerr << e.what() << endl;
+            }
+        }
 
         static uint64_t
         get_blockchain_height(string blk_path = "/home/mwo/.blockchain/lmdb")
@@ -225,6 +322,13 @@ namespace xmreg
 
             return height;
 
+        }
+
+        string
+        key_val_to_str(const lmdb::val& key, const lmdb::val& val)
+        {
+            return "key: "     + string(key.data(), key.size())
+                   + ", val: " + string(val.data(), val.size());
         }
 
 

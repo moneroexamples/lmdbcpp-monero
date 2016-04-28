@@ -17,7 +17,7 @@ namespace epee {
     unsigned int g_test_dbg_lock_sleep = 0;
 }
 
-static const char* LAST_HEIGHT_FILE = "/home/mwo/Desktop/last_height.txt";
+static const char* LAST_HEIGHT_FILE = "/home/mwo/.bitmonero/lmdb2/last_height.txt";
 
 int main(int ac, const char* av[])  {
 
@@ -70,7 +70,7 @@ int main(int ac, const char* av[])  {
     cryptonote::Blockchain& core_storage = mcore.get_core();
 
 
-    xmreg::MyLMDB mylmdb {"/home/mwo/Desktop"};
+    xmreg::MyLMDB mylmdb {"/home/mwo/.bitmonero/lmdb2"};
 
     while (true)
     {
@@ -83,7 +83,7 @@ int main(int ac, const char* av[])  {
         if (!last_height_str.empty())
         {
             boost::trim(last_height_str);
-            start_height = boost::lexical_cast<uint64_t>(last_height_str);
+            start_height = boost::lexical_cast<uint64_t>(last_height_str) + 1;
         }
 
 
@@ -139,6 +139,13 @@ int main(int ac, const char* av[])  {
                     cerr << "write_public_keys failed in blk " << blk_height << endl;
                     return 1;
                 }
+
+                if (!mylmdb.write_payment_id(tx))
+                {
+                    cerr << "write_payment_id failed in blk " << blk_height << endl;
+                    return 1;
+                }
+
             }
 
             {
@@ -146,15 +153,50 @@ int main(int ac, const char* av[])  {
                 out_file << blk_height;
             }
 
-
-
         } // for (uint64_t i = start_height; i < height; ++i)
 
-        cout << "Wait for 20 seconds " << flush;
+
+        if (false)
+        {
+            string key_str;
+            cout << "Enter key_image to find: ";
+            cin >> key_str;
+
+            cout << "Searching for: <" << key_str << ">" << endl;
+
+            mylmdb.search(key_str, "key_images");
+        }
+
+        if (false)
+        {
+            string public_key;
+            cout << "Enter public_key to find: ";
+            cin >> public_key;
+
+            cout << "Searching for: <" << public_key << ">" << endl;
+
+            mylmdb.search(public_key, "public_keys");
+        }
+
+        if (false)
+        {
+            string to_search;
+            cout << "Enter payment_id to find: ";
+            cin >> to_search;
+
+            cout << "Searching for: <" << to_search << ">" << endl;
+
+            mylmdb.search(to_search, "payments_id");
+        }
+
+
+
+        cout << "Wait for 30 seconds " << flush;
+
         for (size_t i = 0; i < 10; ++i)
         {
             cout << "." << flush;
-            std::this_thread::sleep_for(std::chrono::seconds(2));
+            std::this_thread::sleep_for(std::chrono::seconds(3));
         }
 
         cout << endl;
