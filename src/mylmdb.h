@@ -188,7 +188,7 @@ namespace xmreg
                 lmdb::txn wtxn = lmdb::txn::begin(m_env);
                 lmdb::dbi wdbi = lmdb::dbi::open(wtxn, "payments_id", flags);
 
-                cout << "Saving payiment_id: " << payment_id_str << endl;
+                //cout << "Saving payiment_id: " << payment_id_str << endl;
 
                 lmdb::val payment_id_val{payment_id_str};
                 lmdb::val tx_hash_val{tx_hash_str};
