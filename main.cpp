@@ -235,11 +235,9 @@ int main(int ac, const char* av[])  {
 
         cout << endl;
 
-
-
     } //while (true)
 
-
     cout << "Hello, World!" << endl;
+
     return 0;
 }
