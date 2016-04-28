@@ -34,11 +34,13 @@ int main(int ac, const char* av[])  {
     }
 
     // get other options
-    auto bc_path_opt      = opts.get_option<string>("bc-path");
-    auto testnet_opt      = opts.get_option<bool>("testnet");
+    auto bc_path_opt  = opts.get_option<string>("bc-path");
+    auto testnet_opt  = opts.get_option<bool>("testnet");
+    auto search_opt   = opts.get_option<bool>("search");
 
 
-    bool testnet        = *testnet_opt ;
+    bool testnet         = *testnet_opt;
+    bool search_enabled  = *search_opt;
 
 
     path blockchain_path;
@@ -69,14 +71,12 @@ int main(int ac, const char* av[])  {
     // with the blockchain lmdb database
     cryptonote::Blockchain& core_storage = mcore.get_core();
 
+    uint64_t  start_height = 0UL;
 
     xmreg::MyLMDB mylmdb {"/home/mwo/.bitmonero/lmdb2"};
 
     while (true)
     {
-
-        //uint64_t  start_height = 1033838UL;
-        uint64_t  start_height = 0UL;
 
         string last_height_str = xmreg::read(LAST_HEIGHT_FILE);
 
@@ -88,9 +88,8 @@ int main(int ac, const char* av[])  {
 
 
         // get the current blockchain height. Just to check
-        //uint64_t height =  xmreg::MyLMDB::get_blockchain_height(blockchain_path.string());
         uint64_t height =  xmreg::MyLMDB::get_blockchain_height(blockchain_path.string());
-        //uint64_t height = core_storage.get_current_blockchain_height();
+
         cout << "Current blockchain height:" << height << endl;
 
 
@@ -125,30 +124,31 @@ int main(int ac, const char* av[])  {
                 fmt::print("analyzing blk {:d}/{:d}\n", blk_height, height);
             }
 
-
             for (const cryptonote::transaction& tx : txs)
             {
+                crypto::hash tx_hash = get_transaction_hash(tx);
+
                 if (!mylmdb.write_key_images(tx))
                 {
-                    cerr << "write_key_images failed in blk " << blk_height << endl;
+                    cerr << "write_key_images failed in tx " << tx_hash << endl;
                     return 1;
                 }
 
                 if (!mylmdb.write_output_public_keys(tx))
                 {
-                    cerr << "write_output_public_keys failed in blk " << blk_height << endl;
+                    cerr << "write_output_public_keys failed in tx " << tx_hash << endl;
                     return 1;
                 }
 
                 if (!mylmdb.write_tx_public_key(tx))
                 {
-                    cerr << "write_tx_public_key failed in blk " << blk_height << endl;
+                    cerr << "write_tx_public_key failed in tx " << tx_hash << endl;
                     return 1;
                 }
 
                 if (!mylmdb.write_payment_id(tx))
                 {
-                    cerr << "write_payment_id failed in blk " << blk_height << endl;
+                    cerr << "write_payment_id failed in tx " << tx_hash << endl;
                     return 1;
                 }
 
@@ -162,115 +162,82 @@ int main(int ac, const char* av[])  {
         } // for (uint64_t i = start_height; i < height; ++i)
 
 
+        uint64_t what_to_search {0};
+
+        if (search_enabled)
+        {
+            cout << "What to search "
+                 << "[0 - nothing, 1 - key_image, 2- out_public_key, "
+                 << "3 - tx_public_key, 4 - payment id]\n"
+                 << endl;
+            cout << "Your choise [0-4]: ";
+            cin >> what_to_search;
+        }
+
+
         vector<string> found_txs;
 
-        if (false)
+        string to_search;
+
+        switch (what_to_search)
         {
-            string key_str;
-            cout << "Enter key_image to find: ";
-            cin >> key_str;
+            case 1:
+                cout << "Enter key_image to find: "; cin >> to_search;
+                cout << "Searching for: <" << to_search << ">" << endl;
 
-            cout << "Searching for: <" << key_str << ">" << endl;
+                found_txs = mylmdb.search(to_search, "key_images");
 
-            found_txs = mylmdb.search(key_str, "key_images");
+                break;
+
+            case 2:
+                cout << "Enter output public_key to find: "; cin >> to_search;
+                cout << "Searching for: <" << to_search << ">" << endl;
+
+                found_txs = mylmdb.search(to_search, "output_public_keys");
+
+                break;
+            case 3:
+                cout << "Enter tx public key to find: "; cin >> to_search;
+                cout << "Searching for: <" << to_search << ">" << endl;
+
+                found_txs = mylmdb.search(to_search, "tx_public_keys");
+
+                break;
+            case 4:
+                cout << "Enter tx payment_id to find: "; cin >> to_search;
+                cout << "Searching for: <" << to_search << ">" << endl;
+
+                found_txs = mylmdb.search(to_search, "payments_id");
+
+                break;
         }
 
-        if (false)
+        if (search_enabled)
         {
-            string public_key;
-            cout << "Enter public_key to find: ";
-            cin >> public_key;
+            cout << "Found " << found_txs.size() << " tx:" << endl;
 
-            cout << "Searching for: <" << public_key << ">" << endl;
-
-            found_txs = mylmdb.search(public_key, "output_public_keys");
+            for (const string& found_tx: found_txs)
+            {
+                fmt::print(" - tx hash: {:s}\n", found_tx);
+            }
         }
-
-
-        if (false)
+        else
         {
-            string to_search;
-            cout << "Enter payment_id to find: ";
-            cin >> to_search;
+            cout << "Wait for 60 seconds " << flush;
 
-            cout << "Searching for: <" << to_search << ">" << endl;
+            for (size_t i = 0; i < 20; ++i)
+            {
+                cout << "." << flush;
+                std::this_thread::sleep_for(std::chrono::seconds(3));
+            }
 
-            found_txs = mylmdb.search(to_search, "payments_id");
-        }
-
-        if (false)
-        {
-            string to_search;
-            cout << "Enter tx public key to find: ";
-            cin >> to_search;
-
-            cout << "Searching for: <" << to_search << ">" << endl;
-
-            found_txs = mylmdb.search(to_search, "tx_public_keys");
-        }
-
-        for (const string& found_tx: found_txs)
-        {
-            fmt::print("Found tx: {:s}\n", found_tx);
-        }
-
-
-        cout << "Wait for 60 seconds " << flush;
-
-        for (size_t i = 0; i < 20; ++i)
-        {
-            cout << "." << flush;
-            std::this_thread::sleep_for(std::chrono::seconds(3));
         }
 
         cout << endl;
 
 
+
     } //while (true)
-
-    /* Insert some key/value pairs in a write transaction: */
-    //auto wtxn = lmdb::txn::begin(env);
-
-//    /* Fetch key/value pairs in a read-only transaction: */
-//    auto rtxn = lmdb::txn::begin(env, nullptr, MDB_RDONLY);
-//    auto dbi = lmdb::dbi::open(rtxn, "key_images");
-//    auto cursor = lmdb::cursor::open(rtxn, dbi);
-//
-//    lmdb::val key ;
-//    lmdb::val data2;
-//    while (cursor.get(key, data2, MDB_NEXT)) {
-//        //std::printf("key: '%s', value: '%s'\n", key.c_str(), value.c_str());
-//
-//        cout << "key_image: " << string(key.data(), key.size())
-//             << " tx_hash: "   <<   string(data2.data(), data2.size())
-//             << endl;
-//
-//
-//    }
-//    cursor.close();
-//    rtxn.abort();
-
-    lmdb::val key  {"f83301b08f23800a928aa50bafaca5e20135b6cd9cb7603585199dcd0d30e9b7"};
-    lmdb::val data2 ;
-
-//    auto rtxn = lmdb::txn::begin(env, nullptr, MDB_RDONLY);
-//    auto dbi = lmdb::dbi::open(rtxn, "key_images");
-//
-//    if (dbi.get(rtxn, key, data2))
-//    {
-//
-//        string key_img(key.data(), key.size());
-//        string tx_hash(data2.data(), data2.size());
-//
-//        fmt::print("Key image {:s} found in tx {:s}\n", key_img, tx_hash);
-//    }
-//    else
-//    {
-//        fmt::print("Key image {:s} not found\n", key);
-//    }
-//
-//    rtxn.abort();
-
 
 
     cout << "Hello, World!" << endl;
