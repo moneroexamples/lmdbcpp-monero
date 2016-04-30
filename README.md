@@ -35,8 +35,6 @@ as shown here:
 The main part of the example is main.cpp.
 
 ```c++
-static const char* LAST_HEIGHT_FILE = "/home/mwo/.bitmonero/lmdb2/last_height.txt";
-
 int main(int ac, const char* av[])  {
 
 
@@ -162,6 +160,7 @@ int main(int ac, const char* av[])  {
 
            }
 
+           // save the height of just analyzed block into the last_height_file
            {
                ofstream out_file(last_height_file.string());
                out_file << blk_height;
@@ -281,10 +280,8 @@ int main(int ac, const char* av[])  {
 
     } //while (true)
 
-    cout << "Hello, World!" << endl;
-
     return 0;
-    }
+}
 ```
 
 

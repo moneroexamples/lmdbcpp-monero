@@ -169,6 +169,7 @@ int main(int ac, const char* av[])  {
 
             }
 
+            // save the height of just analyzed block into the last_height_file
             {
                 ofstream out_file(last_height_file.string());
                 out_file << blk_height;
@@ -288,7 +289,6 @@ int main(int ac, const char* av[])  {
 
     } //while (true)
 
-    cout << "Hello, World!" << endl;
 
     return 0;
 }
