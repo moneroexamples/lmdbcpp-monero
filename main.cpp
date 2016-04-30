@@ -290,5 +290,5 @@ int main(int ac, const char* av[])  {
     } //while (true)
 
 
-    return 0;
+    return EXIT_SUCCESS;
 }
