@@ -151,8 +151,6 @@ namespace xmreg
                 lmdb::val amount_val     {static_cast<void*>(&output.second),
                                           sizeof(output.second)};
 
-                cout << "saving output.second: " << output.second << endl;
-
                 wdbi1.put(wtxn, public_key_val, tx_hash_val);
                 wdbi2.put(wtxn, public_key_val, amount_val);
             }
