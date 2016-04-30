@@ -18,7 +18,6 @@ available in the blockchain:
 - `output_public_keys` - key: output public key as string; value: tx_hash as string
 - `output_amounts` - key: output public key as string; value: amount as uint64_t
 - `tx_public_keys` - key: tx public key as string; value: tx_hash as string
-- `output_amounts` - key: output public key as string; value: amount as uint64_t
 - `payments_id` - key: tx payment id as string; value: tx_hash as string
 - `encrypted_payments_id` - key: encrypted tx payment id as string; value: tx_hash as string
 
