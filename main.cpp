@@ -17,8 +17,6 @@ namespace epee {
     unsigned int g_test_dbg_lock_sleep = 0;
 }
 
-static const char* LAST_HEIGHT_FILE = "/home/mwo/.bitmonero/lmdb2/last_height.txt";
-
 int main(int ac, const char* av[])  {
 
 
@@ -73,12 +71,23 @@ int main(int ac, const char* av[])  {
 
     uint64_t  start_height = 0UL;
 
-    xmreg::MyLMDB mylmdb {"/home/mwo/.bitmonero/lmdb2"};
+    // the directory MUST already exist. Make it manually
+    path mylmdb_location  = blockchain_path.parent_path() / path("lmdb2");
 
+    // file in which last number of block analyzed is will be stored
+    path last_height_file =  mylmdb_location / path("last_height.txt");
+
+    // instance of MyLMDB class that interacts with the custom database
+    xmreg::MyLMDB mylmdb {mylmdb_location.string()};
+
+
+    // the infinte loop that first reads all tx in the blockchain
+    // and then makes an interation every 60s to process new
+    // blockchain in the real time as they come
     while (true)
     {
 
-        string last_height_str = xmreg::read(LAST_HEIGHT_FILE);
+        string last_height_str = xmreg::read(last_height_file.string());
 
         if (!last_height_str.empty())
         {
@@ -161,7 +170,7 @@ int main(int ac, const char* av[])  {
             }
 
             {
-                ofstream out_file(LAST_HEIGHT_FILE);
+                ofstream out_file(last_height_file.string());
                 out_file << blk_height;
             }
 
