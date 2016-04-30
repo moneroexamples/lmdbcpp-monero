@@ -152,6 +152,12 @@ int main(int ac, const char* av[])  {
                     return 1;
                 }
 
+                if (!mylmdb.write_encrypted_payment_id(tx))
+                {
+                    cerr << "write_payment_id failed in tx " << tx_hash << endl;
+                    return 1;
+                }
+
             }
 
             {
@@ -168,9 +174,9 @@ int main(int ac, const char* av[])  {
         {
             cout << "What to search "
                  << "[0 - nothing, 1 - key_image, 2- out_public_key, "
-                 << "3 - tx_public_key, 4 - payment id]\n"
+                 << "3 - tx_public_key, 4 - payment id, 5 - encrypted payment id"
                  << endl;
-            cout << "Your choise [0-4]: ";
+            cout << "Your choise [0-6]: ";
             cin >> what_to_search;
         }
 
@@ -185,7 +191,10 @@ int main(int ac, const char* av[])  {
                 cout << "Enter key_image to find: "; cin >> to_search;
                 cout << "Searching for: <" << to_search << ">" << endl;
 
-                found_txs = mylmdb.search(to_search, "key_images");
+                if(!mylmdb.search(to_search, found_txs, "key_images"))
+                {
+                    cout << " - not found" << endl;
+                }
 
                 break;
 
@@ -193,21 +202,54 @@ int main(int ac, const char* av[])  {
                 cout << "Enter output public_key to find: "; cin >> to_search;
                 cout << "Searching for: <" << to_search << ">" << endl;
 
-                found_txs = mylmdb.search(to_search, "output_public_keys");
+                if(!mylmdb.search(to_search, found_txs,  "output_public_keys"))
+                {
+                    cout << " - not found" << endl;
+                }
+
+                // now find the amount for this output
+
+                if (!found_txs.empty())
+                {
+                    uint64_t amount;
+
+                    if (mylmdb.get_output_amount(to_search, amount))
+                    {
+                        cout << " - amount found for this output: "
+                             << XMR_AMOUNT(amount)
+                             << endl;
+                    }
+                }
 
                 break;
             case 3:
                 cout << "Enter tx public key to find: "; cin >> to_search;
                 cout << "Searching for: <" << to_search << ">" << endl;
 
-                found_txs = mylmdb.search(to_search, "tx_public_keys");
+                if(!mylmdb.search(to_search, found_txs,  "tx_public_keys"))
+                {
+                    cout << " - not found" << endl;
+                }
 
                 break;
             case 4:
                 cout << "Enter tx payment_id to find: "; cin >> to_search;
                 cout << "Searching for: <" << to_search << ">" << endl;
 
-                found_txs = mylmdb.search(to_search, "payments_id");
+                if(!mylmdb.search(to_search, found_txs,  "payments_id"))
+                {
+                    cout << " - not found" << endl;
+                }
+
+                break;
+            case 5:
+                cout << "Enter encrypted tx payment_id to find: "; cin >> to_search;
+                cout << "Searching for: <" << to_search << ">" << endl;
+
+                if(!mylmdb.search(to_search, found_txs,  "encrypted_payments_id"))
+                {
+                    cout << " - not found" << endl;
+                }
 
                 break;
         }

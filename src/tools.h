@@ -7,6 +7,10 @@
 
 #define PATH_SEPARARTOR '/'
 
+
+#define XMR_AMOUNT(value) \
+    static_cast<double>(value) / 1e12
+
 #include "monero_headers.h"
 #include "tx_details.h"
 
