@@ -3,7 +3,8 @@
 Monero is using [lmdb databases](http://symas.com/mdb/) to store its blockchain.
 
 Although one can interact directly with the blockchain to get information
-from it, searching and retreving some information maybe be not very efficient.
+from it using Monero C++ libraries,
+searching and retrieving some information maybe be not very efficient.
 
 This in this example, it is shown how to create your own custom lmdb databases
 based on information from the blockchain using [lmdb++](https://github.com/bendiken/lmdbxx)
