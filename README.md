@@ -16,11 +16,13 @@ The example creates the following lmdb databases based on the information
 available in the blockchain:
 
 - `key_images` - key: input key image as string; value: tx_hash as string
-- `output_public_keys` - key: output public key as string; value: tx_hash as string
-- `output_amounts` - key: output public key as string; value: amount as uint64_t
 - `tx_public_keys` - key: tx public key as string; value: tx_hash as string
 - `payments_id` - key: tx payment id as string; value: tx_hash as string
 - `encrypted_payments_id` - key: encrypted tx payment id as string; value: tx_hash as string
+- `output_public_keys` - key: output public key as string; value: tx_hash as string
+- `output_amounts` - key: output public key as string; value: amount as uint64_t
+- `output_info` - key: output public key as string; value: struct {tx_hash as hash, 
+tx_pub_key as public_key, amount as uint64_t, index_in_tx as uint64_t}
 
 ## Prerequisite
 

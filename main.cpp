@@ -184,7 +184,8 @@ int main(int ac, const char* av[])  {
         {
             cout << "What to search "
                  << "[0 - nothing, 1 - key_image, 2- out_public_key, "
-                 << "3 - tx_public_key, 4 - payment id, 5 - encrypted payment id"
+                 << "3 - tx_public_key, 4 - payment id, 5 - encrypted payment id, "
+                 << "6 - output info"
                  << endl;
             cout << "Your choise [0-6]: ";
             cin >> what_to_search;
@@ -259,6 +260,35 @@ int main(int ac, const char* av[])  {
                 if(!mylmdb.search(to_search, found_txs,  "encrypted_payments_id"))
                 {
                     cout << " - not found" << endl;
+                }
+
+                break;
+
+            case 6:
+                cout << "Enter output public_key  to find: "; cin >> to_search;
+                cout << "Searching for: <" << to_search << ">" << endl;
+
+
+                if(!mylmdb.search(to_search, found_txs,  "output_public_keys"))
+                {
+                    cout << " - not found" << endl;
+                }
+
+                // now find the amount for this output
+
+                if (!found_txs.empty())
+                {
+                    xmreg::output_info out_info;
+
+                    if (mylmdb.get_output_info(to_search, out_info))
+                    {
+                        cout << " - output info found this output: \n"
+                             << "\ttx_hash    : " << out_info.tx_hash << "\n"
+                             << "\ttx_pub_key : " << out_info.tx_pub_key << "\n"
+                             << "\tamount     : " << XMR_AMOUNT(out_info.amount) << "\n"
+                             << "\tindex_in_tx: " << out_info.index_in_tx
+                             << endl;
+                    }
                 }
 
                 break;
