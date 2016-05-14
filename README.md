@@ -21,8 +21,8 @@ available in the blockchain:
 - `encrypted_payments_id` - key: encrypted tx payment id as string; value: tx_hash as string
 - `output_public_keys` - key: output public key as string; value: tx_hash as string
 - `output_amounts` - key: output public key as string; value: amount as uint64_t
-- `output_info` - key: output public key as string; value: struct {tx_hash as hash, 
-tx_pub_key as public_key, amount as uint64_t, index_in_tx as uint64_t}
+- `output_info` - key: output timestamp as uint64; value: struct {out_pub_key as public_key, 
+tx_hash as hash, tx_pub_key as public_key, amount as uint64_t, index_in_tx as uint64_t}
 
 ## Prerequisite
 
