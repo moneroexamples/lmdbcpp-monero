@@ -143,7 +143,7 @@ int main(int ac, const char* av[])  {
                     return 1;
                 }
 
-                if (!mylmdb.write_output_public_keys(tx))
+                if (!mylmdb.write_output_public_keys(tx, blk))
                 {
                     cerr << "write_output_public_keys failed in tx " << tx_hash << endl;
                     return 1;
@@ -265,31 +265,29 @@ int main(int ac, const char* av[])  {
                 break;
 
             case 6:
-                cout << "Enter output public_key  to find: "; cin >> to_search;
+                cout << "Enter output (i.e., block) timestamp to find: "; cin >> to_search;
                 cout << "Searching for: <" << to_search << ">" << endl;
 
 
-                if(!mylmdb.search(to_search, found_txs,  "output_public_keys"))
+                uint64_t out_timestamp = boost::lexical_cast<uint64_t>(to_search);
+
+                vector<xmreg::output_info> out_infos;
+
+                if (mylmdb.get_output_info(out_timestamp, out_infos))
                 {
-                    cout << " - not found" << endl;
-                }
+                    cout << " - following outputs were found:" << endl;
 
-                // now find the amount for this output
-
-                if (!found_txs.empty())
-                {
-                    xmreg::output_info out_info;
-
-                    if (mylmdb.get_output_info(to_search, out_info))
+                    for (const auto& out_info: out_infos)
                     {
-                        cout << " - output info found this output: \n"
-                             << "\ttx_hash    : " << out_info.tx_hash << "\n"
-                             << "\ttx_pub_key : " << out_info.tx_pub_key << "\n"
-                             << "\tamount     : " << XMR_AMOUNT(out_info.amount) << "\n"
-                             << "\tindex_in_tx: " << out_info.index_in_tx
-                             << endl;
+                        cout << "   - " << out_info << endl;
                     }
                 }
+                else
+                {
+                    cout << "No outputs with timestamp of " << out_timestamp
+                         << "were found." << endl;
+                }
+
 
                 break;
         }
