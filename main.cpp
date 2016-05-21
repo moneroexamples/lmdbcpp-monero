@@ -62,7 +62,7 @@ int main(int ac, const char* av[])  {
     if (!mcore.init(blockchain_path.string()))
     {
         cerr << "Error accessing blockchain." << endl;
-        return 1;
+        return EXIT_FAILURE;
     }
 
     // get the high level cryptonote::Blockchain object to interact
@@ -73,6 +73,20 @@ int main(int ac, const char* av[])  {
 
     // the directory MUST already exist. Make it manually
     path mylmdb_location  = blockchain_path.parent_path() / path("lmdb2");
+
+    // if the lmdb2 folder does not exist, create it
+    if (!boost::filesystem::exists(mylmdb_location))
+    {
+        if (boost::filesystem::create_directory(mylmdb_location))
+        {
+            cout << "Folder " << mylmdb_location << "created" << endl;
+        }
+        else
+        {
+            cerr << "Cant created folder: " << mylmdb_location << endl;
+            return EXIT_FAILURE;
+        }
+    }
 
     // file in which last number of block analyzed is will be stored
     path last_height_file =  mylmdb_location / path("last_height.txt");
