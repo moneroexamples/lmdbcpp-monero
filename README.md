@@ -316,8 +316,8 @@ can be time consuming, and the new database can be large. At the moment it is
 about 12GB!
 
 Once the database is constructed, the `xmrlmdbcpp`
-will run in a loop, with 60s breaks, to keep updating itself new new blocks
-in the blockchain.
+will run in a loop, with 60s breaks, to keep updating itself as new blocks
+are added to the Monero blockchain.
 
 By default, the custom lmdb database will be located in `~/.bitmonero/lmdb2`
 folder.
