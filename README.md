@@ -308,6 +308,43 @@ cmake .
 make
 ```
 
+After successful compilation, executable `xmrlmdbcpp` should be created.
+When executed, it will look for the Monero blockchain lmdb database in its
+default location, i.e., `~/.bitmonero/lmdb`. Once found, it will start extracting
+information, block by block, and constructing the custom database. This
+can be time consuming, and the new database can be large. At the moment it is
+about 12GB!
+
+Once the database is constructed, the `xmrlmdbcpp`
+will run in a loop, with 60s breaks, to keep updating itself new new blocks
+in the blockchain.
+
+By default, the custom lmdb database will be located in `~/.bitmonero/lmdb2`
+folder.
+
+To run it in the background on a headless server,
+execute `xmrlmdbcpp` inside `screen` or `tmux` sessions.
+
+## Example output
+
+```bash
+./xmrlmdbcpp
+```
+
+```bash
+Blockchain path: "/home/mwo/.bitmonero/lmdb"
+2016-May-28 12:59:25.670173 Blockchain initialized. last block: 1056841, d0.h0.m5.s7 time ago, current difficulty: 1471793108
+1056842
+Current blockchain height:1056842
+analyzing blk 1056841/1056842
+Wait for 60 seconds ....................
+1056842
+Current blockchain height:1056842
+Wait for 60 seconds ........
+```
+
+
+
 ## Other examples
 Other examples can be found on  [github](https://github.com/moneroexamples?tab=repositories).
 Please know that some of the examples/repositories are not
