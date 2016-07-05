@@ -85,4 +85,5 @@ target_link_libraries(${PROJECT_NAME}
         lmdb
         ${Boost_LIBRARIES}
         pthread
-        unbound)
+        unbound
+        dl)
