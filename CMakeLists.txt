@@ -86,4 +86,5 @@ target_link_libraries(${PROJECT_NAME}
         ${Boost_LIBRARIES}
         pthread
         unbound
+        unwind
         dl)
