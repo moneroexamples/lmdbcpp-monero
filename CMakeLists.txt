@@ -10,11 +10,11 @@ set(CMAKE_CXX_FLAGS
 
 # set location of monero static libraries
 set(MONERO_LIBS_DIR
-        /opt/bitmonero-dev/libs)
+        /opt/monero-dev/libs)
 
 # set location of moneroheaders
 set(MONERO_HEADERS_DIR
-        /opt/bitmonero-dev/headers)
+        /opt/monero-dev/headers)
 
 # include monero headers
 include_directories(
@@ -44,7 +44,9 @@ add_library(blockchain_db STATIC IMPORTED)
 set_property(TARGET blockchain_db
         PROPERTY IMPORTED_LOCATION ${MONERO_LIBS_DIR}/libblockchain_db.a)
 
-
+add_library(ringct STATIC IMPORTED)
+set_property(TARGET ringct
+        PROPERTY IMPORTED_LOCATION ${MONERO_LIBS_DIR}/libringct.a)
 
 # find boost
 find_package(Boost COMPONENTS
@@ -83,6 +85,7 @@ target_link_libraries(${PROJECT_NAME}
         blocks
         common
         lmdb
+        ringct
         ${Boost_LIBRARIES}
         pthread
         unbound
