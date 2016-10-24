@@ -43,7 +43,7 @@ int main(int ac, const char* av[])  {
 
     path blockchain_path;
 
-    if (!xmreg::get_blockchain_path(bc_path_opt, blockchain_path))
+    if (!xmreg::get_blockchain_path(bc_path_opt, blockchain_path, testnet))
     {
         // if problem obtaining blockchain path, finish.
         return 1;
@@ -56,18 +56,17 @@ int main(int ac, const char* av[])  {
     xmreg::enable_monero_log();
 
     // create instance of our MicroCore
+    // and make pointer to the Blockchain
     xmreg::MicroCore mcore;
+    cryptonote::Blockchain* core_storage;
 
-    // initialize the core using the blockchain path
-    if (!mcore.init(blockchain_path.string()))
+    // initialize mcore and core_storage
+    if (!xmreg::init_blockchain(blockchain_path.string(),
+                                mcore, core_storage))
     {
         cerr << "Error accessing blockchain." << endl;
         return EXIT_FAILURE;
     }
-
-    // get the high level cryptonote::Blockchain object to interact
-    // with the blockchain lmdb database
-    cryptonote::Blockchain& core_storage = mcore.get_core();
 
     uint64_t  start_height = 0UL;
 
@@ -113,7 +112,7 @@ int main(int ac, const char* av[])  {
         // get the current blockchain height. Just to check
         uint64_t height =  xmreg::MyLMDB::get_blockchain_height(blockchain_path.string());
 
-        cout << "Current blockchain height:" << height << endl;
+        cout << "Current blockchain height: " << height << endl;
 
 
         for (uint64_t blk_height = start_height; blk_height < height; ++blk_height)
@@ -122,7 +121,7 @@ int main(int ac, const char* av[])  {
 
             try
             {
-                blk = core_storage.get_db().get_block_from_height(blk_height);
+                blk = core_storage->get_db().get_block_from_height(blk_height);
             }
             catch (std::exception &e)
             {

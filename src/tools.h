@@ -7,24 +7,27 @@
 
 #define PATH_SEPARARTOR '/'
 
-
 #define XMR_AMOUNT(value) \
     static_cast<double>(value) / 1e12
+
+#define REMOVE_HASH_BRAKETS(a_hash) \
+    a_hash.substr(1, a_hash.size()-2)
 
 #include "monero_headers.h"
 #include "tx_details.h"
 
 #include "../ext/dateparser.h"
+#include "../ext/infix_iterator.h"
 
+#include <boost/lexical_cast.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/optional.hpp>
-#include "boost/date_time/posix_time/posix_time.hpp"
+#include <boost/date_time/posix_time/posix_time.hpp>
+
 
 #include <string>
 #include <vector>
-#include <functional>
-#include <tuple>
-
+#include <array>
 
 /**
  * Some helper functions used in the example.
@@ -41,6 +44,40 @@ namespace xmreg
     namespace pt = boost::posix_time;
     namespace gt = boost::gregorian;
 
+
+
+    struct outputs_visitor
+    {
+        std::vector<crypto::public_key >& m_output_keys;
+
+        const Blockchain& m_bch;
+
+        outputs_visitor(std::vector<crypto::public_key>& output_keys, const Blockchain& bch) :
+                m_output_keys(output_keys), m_bch(bch)
+        {
+        }
+
+        bool handle_output(uint64_t unlock_time, const crypto::public_key &pubkey)
+        {
+            //check tx unlock time
+//            if (!m_bch.is_tx_spendtime_unlocked(unlock_time))
+//            {
+//                LOG_PRINT_L1("One of outputs for one of inputs has wrong tx.unlock_time = " << unlock_time);
+//                return false;
+//            }
+
+            m_output_keys.push_back(pubkey);
+
+            return true;
+        }
+    };
+
+
+
+
+
+
+
     template <typename T>
     bool
     parse_str_secret_key(const string& key_str, T& secret_key);
@@ -48,8 +85,8 @@ namespace xmreg
 
     bool
     get_tx_pub_key_from_str_hash(Blockchain& core_storage,
-                             const string& hash_str,
-                             transaction& tx);
+                                 const string& hash_str,
+                                 transaction& tx);
 
     bool
     parse_str_address(const string& address_str,
@@ -60,7 +97,11 @@ namespace xmreg
     is_separator(char c);
 
     string
-    print_address(const account_public_address& address, bool testnet = false);
+    print_address(const account_public_address& address,
+                  bool testnet = false);
+
+    string
+    print_sig (const signature& sig);
 
     string
     remove_trailing_path_separator(const string& in_path);
@@ -72,8 +113,12 @@ namespace xmreg
     timestamp_to_str(time_t timestamp, const char* format = "%F %T");
 
 
+    ostream&
+    operator<< (ostream& os, const account_public_address& addr);
+
+
     string
-    get_default_lmdb_folder();
+    get_default_lmdb_folder(bool testnet = false);
 
     bool
     generate_key_image(const crypto::key_derivation& derivation,
@@ -84,7 +129,8 @@ namespace xmreg
 
     bool
     get_blockchain_path(const boost::optional<string>& bc_path,
-                        bf::path& blockchain_path);
+                        bf::path& blockchain_path,
+                        bool testnet = false);
 
     uint64_t
     sum_money_in_outputs(const transaction& tx);
@@ -118,17 +164,15 @@ namespace xmreg
 
 
     bool
-    get_payment_id(const transaction& tx,
+    get_payment_id(const vector<uint8_t>& extra,
                    crypto::hash& payment_id,
                    crypto::hash8& payment_id8);
 
     bool
-    for_all_tx(Blockchain& core_storage,
-               uint64_t start_height,
-               uint64_t end_height,
-               function<bool(const block& blk,
-                             const transaction& tx,
-                             const crypto::hash& tx_hash)> f);
+    get_payment_id(const transaction& tx,
+                   crypto::hash& payment_id,
+                   crypto::hash8& payment_id8);
+
 
     inline void
     enable_monero_log() {
@@ -141,11 +185,57 @@ namespace xmreg
     uint64_t
     estimate_bc_height(const string& date, const char* format = "%Y-%m-%d");
 
-    time_t
-    to_time_t(pt::ptime t);
+
+    inline double
+    get_xmr(uint64_t core_amount)
+    {
+        return  static_cast<double>(core_amount) / 1e12;
+    }
+
+    array<size_t, 5>
+    timestamp_difference(uint64_t t1, uint64_t t2);
 
     string
     read(string filename);
+
+
+
+    /**
+     * prints an iterable such as vector
+     */
+    template<typename T>
+    void print_iterable(const T & elems) {
+
+        infix_ostream_iterator<typename T::value_type>
+                oiter(std::cout, ",");
+
+        std::cout << "[";
+        std::copy(elems.begin(), elems.end(),oiter);
+        std::cout << "]" << std::endl;
+    }
+
+    pair<string, double>
+    timestamps_time_scale(const vector<uint64_t>& timestamps,
+                          uint64_t timeN, uint64_t resolution = 80,
+                          uint64_t time0 = 1397818193 /* timestamp of the second block */);
+
+
+    bool
+    decode_ringct(const rct::rctSig & rv,
+                  const crypto::public_key pub,
+                  const crypto::secret_key &sec,
+                  unsigned int i,
+                  rct::key & mask,
+                  uint64_t & amount);
+
+    bool
+    url_decode(const std::string& in, std::string& out);
+
+    map<std::string, std::string>
+    parse_crow_post_data(const string& req_body);
+
+    bool
+    get_dummy_account_keys(account_keys& dummy_keys, bool testnet = false);
 
 }
 

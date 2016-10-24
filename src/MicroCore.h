@@ -11,7 +11,6 @@
 #include "tx_details.h"
 
 
-
 namespace xmreg
 {
     using namespace cryptonote;
@@ -28,6 +27,8 @@ namespace xmreg
      */
     class MicroCore {
 
+        string blockchain_path;
+
         tx_memory_pool m_mempool;
         Blockchain m_blockchain_storage;
 
@@ -35,7 +36,7 @@ namespace xmreg
         MicroCore();
 
         bool
-        init(const string& blockchain_path);
+        init(const string& _blockchain_path);
 
         Blockchain&
         get_core();
@@ -43,19 +44,42 @@ namespace xmreg
         bool
         get_block_by_height(const uint64_t& height, block& blk);
 
-
-        bool
-        get_block_by_date(const string& date, /* searched date */
-                          block& blk, /* block to be returned */
-                          uint64_t init_height = 0, /* start looking from this height */
-                          const char* format = "%Y-%m-%d");
-
         bool
         get_tx(const crypto::hash& tx_hash, transaction& tx);
+
+        bool
+        get_tx(const string& tx_hash, transaction& tx);
+
+        bool
+        find_output_in_tx(const transaction& tx,
+                          const public_key& output_pubkey,
+                          tx_out& out,
+                          size_t& output_index);
+
+        bool
+        get_tx_hash_from_output_pubkey(const public_key& output_pubkey,
+                                       const uint64_t& block_height,
+                                       crypto::hash& tx_hash,
+                                       transaction& tx_found);
+
+        uint64_t
+        get_blk_timestamp(uint64_t blk_height);
+
+        string
+        get_blkchain_path();
 
 
         virtual ~MicroCore();
     };
+
+
+
+
+    bool
+    init_blockchain(const string& path,
+                    MicroCore& mcore,
+                    Blockchain*& core_storage);
+
 
 }
 

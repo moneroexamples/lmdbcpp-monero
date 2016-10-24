@@ -4,7 +4,6 @@
 
 #include "tools.h"
 
-#include <stdlib.h>
 
 
 namespace xmreg
@@ -44,7 +43,7 @@ namespace xmreg
     // explicit instantiations of get template function
     template bool parse_str_secret_key<crypto::secret_key>(const string& key_str, crypto::secret_key& secret_key);
     template bool parse_str_secret_key<crypto::public_key>(const string& key_str, crypto::public_key& secret_key);
-
+    template bool parse_str_secret_key<crypto::hash>(const string& key_str, crypto::hash& secret_key);
 
     /**
      * Get transaction tx using given tx hash. Hash is represent as string here,
@@ -97,12 +96,19 @@ namespace xmreg
     string
     print_address(const account_public_address& address, bool testnet)
     {
-
-
-        return get_account_address_as_str(testnet, address);
+        return "<" + get_account_address_as_str(testnet, address) + ">";
     }
 
+    string
+    print_sig (const signature& sig)
+    {
+        stringstream ss;
 
+        ss << "c: <" << epee::string_tools::pod_to_hex(sig.c) << "> "
+           << "r: <" << epee::string_tools::pod_to_hex(sig.r) << ">";
+
+        return ss.str();
+    }
 
     /**
      * Check if a character is a path seprator
@@ -142,24 +148,7 @@ namespace xmreg
     timestamp_to_str(time_t timestamp, const char* format)
     {
 
-        // set UTC time zone
-
-        // copy current timezone setting
-
-//        char old_tz[128];
-//        const char *tz_org = getenv("TZ");
-//
-//        if (tz_org)
-//        {
-//            strcpy(old_tz, tz_org);
-//        }
-
-//        // set new timezone
-//        std::string tz = "TZ=Coordinated Universal Time";
-//        putenv(const_cast<char *>(tz.c_str()));
-//        tzset(); // Initialize timezone data
-
-        const int TIME_LENGTH = 128;
+        const int TIME_LENGTH = 60;
 
         char str_buff[TIME_LENGTH];
 
@@ -170,20 +159,20 @@ namespace xmreg
 
         len = std::strftime(str_buff, TIME_LENGTH, format, tm_ptr);
 
-
-//        // set timezone to orginal value
-//        if (tz_org != 0)
-//        {
-//            setenv("TZ", old_tz, 1);
-//            tzset();
-//        }
-
         return string(str_buff, len);
     }
 
 
+    ostream&
+    operator<< (ostream& os, const account_public_address& addr)
+    {
+        os << get_account_address_as_str(false, addr);
+        return os;
+    }
+
+
     /*
-     * Generate key_image of for an ith output
+     * Generate key_image of foran ith output
      */
     bool
     generate_key_image(const crypto::key_derivation& derivation,
@@ -234,11 +223,15 @@ namespace xmreg
 
 
     string
-    get_default_lmdb_folder()
+    get_default_lmdb_folder(bool testnet)
     {
         // default path to monero folder
         // on linux this is /home/<username>/.bitmonero
         string default_monero_dir = tools::get_default_data_dir();
+
+        if (testnet)
+            default_monero_dir += "/testnet";
+
 
         // the default folder of the lmdb blockchain database
         // is therefore as follows
@@ -252,16 +245,16 @@ namespace xmreg
      * If not given, provide default path
      */
     bool
-    get_blockchain_path(const boost::optional<string>& bc_path, bf::path& blockchain_path )
+    get_blockchain_path(const boost::optional<string>& bc_path,
+                        bf::path& blockchain_path,
+                        bool testnet)
     {
         // the default folder of the lmdb blockchain database
-        string default_lmdb_dir   = xmreg::get_default_lmdb_folder();
+        string default_lmdb_dir   = xmreg::get_default_lmdb_folder(testnet);
 
         blockchain_path = bc_path
                           ? bf::path(*bc_path)
                           : bf::path(default_lmdb_dir);
-
-
 
         if (!bf::is_directory(blockchain_path))
         {
@@ -275,9 +268,7 @@ namespace xmreg
         blockchain_path = xmreg::remove_trailing_path_separator(blockchain_path);
 
         return true;
-
     }
-
 
 
     uint64_t
@@ -384,8 +375,8 @@ namespace xmreg
         }
 
         return outputs;
-    };
 
+    };
 
     vector<tuple<txout_to_key, uint64_t, uint64_t>>
     get_ouputs_tuple(const transaction& tx)
@@ -481,18 +472,18 @@ namespace xmreg
         return key_images;
     }
 
+
     bool
-    get_payment_id(const transaction& tx,
+    get_payment_id(const vector<uint8_t>& extra,
                    crypto::hash& payment_id,
                    crypto::hash8& payment_id8)
     {
-
         payment_id = null_hash;
         payment_id8 = null_hash8;
 
         std::vector<tx_extra_field> tx_extra_fields;
 
-        if(!parse_tx_extra(tx.extra, tx_extra_fields))
+        if(!parse_tx_extra(extra, tx_extra_fields))
         {
             return false;
         }
@@ -517,31 +508,12 @@ namespace xmreg
 
 
     bool
-    for_all_txs(Blockchain& core_storage,
-                uint64_t start_height,
-                uint64_t end_height,
-                function<bool(const block& blk,
-                              const transaction& tx,
-                              const crypto::hash& tx_hash)> f)
+    get_payment_id(const transaction& tx,
+                   crypto::hash& payment_id,
+                   crypto::hash8& payment_id8)
     {
-        for (uint64_t blk_height = start_height; blk_height < end_height; ++blk_height)
-        {
-            block _block = core_storage.get_db().get_block_from_height(blk_height);
-
-            for (const crypto::hash& _tx_hash: _block.tx_hashes)
-            {
-                transaction _tx = core_storage.get_db().get_tx(_tx_hash);
-
-                if (!f(_block, _tx, _tx_hash))
-                {
-                    return false;
-                }
-            }
-        }
-
-        return true;
+        return get_payment_id(tx.extra, payment_id, payment_id8);
     }
-
 
 
     /**
@@ -558,7 +530,7 @@ namespace xmreg
 
         if (!parser(date))
         {
-           throw runtime_error(string("Date format is incorrect: ") + date);
+            throw runtime_error(string("Date format is incorrect: ") + date);
         }
 
         pt::ptime requested_date = parser.pt;
@@ -574,14 +546,42 @@ namespace xmreg
     }
 
 
-    time_t
-    to_time_t(pt::ptime t)
+    array<size_t, 5>
+    timestamp_difference(uint64_t t1, uint64_t t2)
     {
-        using namespace boost::posix_time;
-        ptime epoch(boost::gregorian::date(1970,1,1));
-        time_duration::sec_type x = (t - epoch).total_seconds();
-        return time_t(x);
-    }
+
+        uint64_t timestamp_diff = t1 - t2;
+
+        // calculate difference of timestamps from current block to the mixin one
+        if (t2 > t1)
+        {
+            timestamp_diff = t2 - t1;
+        }
+
+        uint64_t time_diff_years = timestamp_diff / 31536000;
+
+        timestamp_diff -=  time_diff_years * 31536000;
+
+        uint64_t time_diff_days = timestamp_diff / 86400;
+
+        timestamp_diff -=  time_diff_days * 86400;
+
+        uint64_t time_diff_hours = timestamp_diff / 3600;
+
+        timestamp_diff -=  time_diff_hours * 3600;
+
+        uint64_t time_diff_minutes = timestamp_diff / 60;
+
+        timestamp_diff -=  time_diff_minutes * 60;
+
+        uint64_t time_diff_seconds = timestamp_diff ;
+
+        return array<size_t, 5> {time_diff_years, time_diff_days,
+                                 time_diff_hours, time_diff_minutes,
+                                 time_diff_seconds};
+
+    };
+
 
     string
     read(string filename)
@@ -597,4 +597,193 @@ namespace xmreg
                       std::istreambuf_iterator<char>());
     }
 
+    pair<string, double>
+    timestamps_time_scale(const vector<uint64_t>& timestamps,
+                          uint64_t timeN,
+                          uint64_t resolution,
+                          uint64_t time0)
+    {
+        string empty_time =  string(resolution, '_');
+
+        size_t time_axis_length = empty_time.size();
+
+        uint64_t interval_length = timeN-time0;
+
+        double scale = double(interval_length) / double(time_axis_length);
+
+        for (const auto& timestamp: timestamps)
+        {
+
+            if (timestamp < time0 || timestamp > timeN)
+            {
+                cout << "Out of range" << endl;
+                continue;
+            }
+
+            uint64_t timestamp_place = double(timestamp-time0)
+                                       / double(interval_length)*(time_axis_length - 1);
+
+            empty_time[timestamp_place + 1] = '*';
+        }
+
+        return make_pair(empty_time, scale);
+    }
+
+
+    bool
+    decode_ringct(const rct::rctSig& rv,
+                  const crypto::public_key pub,
+                  const crypto::secret_key &sec,
+                  unsigned int i,
+                  rct::key & mask,
+                  uint64_t & amount)
+    {
+        crypto::key_derivation derivation;
+
+        bool r = crypto::generate_key_derivation(pub, sec, derivation);
+
+        if (!r)
+        {
+            cerr <<"Failed to generate key derivation to decode rct output " << i << endl;
+            return false;
+        }
+
+        crypto::secret_key scalar1;
+
+        crypto::derivation_to_scalar(derivation, i, scalar1);
+
+        try
+        {
+            switch (rv.type)
+            {
+                case rct::RCTTypeSimple:
+                    amount = rct::decodeRctSimple(rv,
+                                                  rct::sk2rct(scalar1),
+                                                  i,
+                                                  mask);
+                    break;
+                case rct::RCTTypeFull:
+                    amount = rct::decodeRct(rv,
+                                            rct::sk2rct(scalar1),
+                                            i,
+                                            mask);
+                    break;
+                default:
+                    cerr << "Unsupported rct type: " << rv.type << endl;
+                    return false;
+            }
+        }
+        catch (const std::exception &e)
+        {
+            cerr << "Failed to decode input " << i << endl;
+            return false;
+        }
+
+        return true;
+    }
+
+    bool
+    url_decode(const std::string& in, std::string& out)
+    {
+        out.clear();
+        out.reserve(in.size());
+        for (std::size_t i = 0; i < in.size(); ++i)
+        {
+            if (in[i] == '%')
+            {
+                if (i + 3 <= in.size())
+                {
+                    int value = 0;
+                    std::istringstream is(in.substr(i + 1, 2));
+                    if (is >> std::hex >> value)
+                    {
+                        out += static_cast<char>(value);
+                        i += 2;
+                    }
+                    else
+                    {
+                        return false;
+                    }
+                }
+                else
+                {
+                    return false;
+                }
+            }
+            else if (in[i] == '+')
+            {
+                out += ' ';
+            }
+            else
+            {
+                out += in[i];
+            }
+        }
+        return true;
+    }
+
+    map<std::string, std::string>
+    parse_crow_post_data(const string& req_body)
+    {
+        map<std::string, std::string> body;
+
+        vector<string> vec;
+        string tmp;
+        bool result = url_decode(req_body, tmp);
+        if (result)
+        {
+            boost::algorithm::split(vec, tmp, [](char x) {return x == '&'; });
+            for(auto &it : vec)
+            {
+                auto pos = it.find("=");
+                if (pos != string::npos)
+                {
+                    body[it.substr(0, pos)] = it.substr(pos + 1);
+                }
+                else
+                {
+                    break;
+                }
+            }
+        }
+        return body;
+    }
+
+    bool
+    get_dummy_account_keys(account_keys& dummy_keys, bool testnet)
+    {
+        secret_key adress_prv_viewkey;
+        secret_key adress_prv_spendkey;
+
+        account_public_address dummy_address;
+
+        if (!get_account_address_from_str(dummy_address,
+                                          testnet,
+                                          "4BAyX63gVQgDqKS1wmqNVHdcCNjq1jooLYCXsKEY9w7VdGh45oZbPLvN7y8oVg2zmnhECkRBXpREWb97KtfAcT6p1UNXm9K"))
+        {
+            return false;
+        }
+
+
+        if (!epee::string_tools::hex_to_pod("f238be69411631f35b76c5a9148b3b7e8327eb41bfd0b396e090aeba40235d01", adress_prv_viewkey))
+        {
+            return false;
+        }
+
+        if (!epee::string_tools::hex_to_pod("5db8e1d2c505f888e54aca15b1a365c8814d7deebc1a246690db3bf71324950d", adress_prv_spendkey))
+        {
+            return false;
+        }
+
+
+        dummy_keys = account_keys {
+                dummy_address,
+                adress_prv_spendkey,
+                adress_prv_viewkey
+        };
+
+        return true;
+    }
+
 }
+

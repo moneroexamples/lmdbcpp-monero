@@ -23,7 +23,7 @@ namespace xmreg
                  "produce help message")
                 ("bc-path,b", value<string>(),
                  "path to lmdb blockchain")
-                ("testnet",  value<bool>()->default_value(false)->implicit_value(true),
+                ("testnet,t",  value<bool>()->default_value(false)->implicit_value(true),
                  "is the address from testnet network")
                 ("search,s",  value<bool>()->default_value(false)->implicit_value(true),
                  "search for tx from user input");
