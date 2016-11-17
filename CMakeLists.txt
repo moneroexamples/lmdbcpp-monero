@@ -83,9 +83,9 @@ target_link_libraries(${PROJECT_NAME}
         blockchain_db
         crypto
         blocks
-        common
         lmdb
         ringct
+        common
         ${Boost_LIBRARIES}
         pthread
         unbound
