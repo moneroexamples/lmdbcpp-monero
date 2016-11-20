@@ -189,7 +189,9 @@ namespace xmreg
 
                 uint64_t index_in_tx = std::get<2>(output);
 
-                output_info out_info {out_pub_key, tx_hash, tx_pub_key, amount, index_in_tx};
+                output_info out_info {out_pub_key, tx_hash,
+                                      tx_pub_key, amount,
+                                      index_in_tx};
 
                 uint64_t out_timestamp = blk.timestamp;
 
@@ -341,6 +343,37 @@ namespace xmreg
 
             return true;
         }
+
+//        // this seems to be not needed as outputs are written based on timestamps
+//
+//        bool
+//        write_block_timestamp(uint64_t& blk_timestamp, uint64_t& blk_height)
+//        {
+//
+//            unsigned int flags = MDB_CREATE | MDB_INTEGERKEY;
+//
+//            try
+//            {
+//                lmdb::txn wtxn = lmdb::txn::begin(m_env);
+//                lmdb::dbi wdbi = lmdb::dbi::open(wtxn, "block_timestamps", flags);
+//
+//                lmdb::val blk_timestamp_val {static_cast<void*>(&blk_timestamp),
+//                                             sizeof(blk_timestamp)};
+//                lmdb::val blk_height_val    {static_cast<void*>(&blk_height),
+//                                             sizeof(blk_height)};
+//
+//                wdbi.put(wtxn, blk_timestamp_val, blk_height_val);
+//
+//                wtxn.commit();
+//            }
+//            catch (lmdb::error& e)
+//            {
+//                cerr << e.what() << endl;
+//                return false;
+//            }
+//
+//            return true;
+//        }
 
         bool
         search(const string& key,

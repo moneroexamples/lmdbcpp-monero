@@ -179,7 +179,6 @@ int main(int ac, const char* av[])  {
                     cerr << "write_payment_id failed in tx " << tx_hash << endl;
                     return 1;
                 }
-
             }
 
             // save the height of just analyzed block into the last_height_file
@@ -198,9 +197,9 @@ int main(int ac, const char* av[])  {
             cout << "What to search "
                  << "[0 - nothing, 1 - key_image, 2- out_public_key, "
                  << "3 - tx_public_key, 4 - payment id, 5 - encrypted payment id, "
-                 << "6 - output info"
+                 << "6 - output info, 7 - block height based on timestamp\""
                  << endl;
-            cout << "Your choise [0-6]: ";
+            cout << "Your choise [0-7]: ";
             cin >> what_to_search;
         }
 
@@ -246,6 +245,7 @@ int main(int ac, const char* av[])  {
                 }
 
                 break;
+
             case 3:
                 cout << "Enter tx public key to find: "; cin >> to_search;
                 cout << "Searching for: <" << to_search << ">" << endl;
@@ -256,6 +256,7 @@ int main(int ac, const char* av[])  {
                 }
 
                 break;
+
             case 4:
                 cout << "Enter tx payment_id to find: "; cin >> to_search;
                 cout << "Searching for: <" << to_search << ">" << endl;
@@ -278,20 +279,19 @@ int main(int ac, const char* av[])  {
                 break;
 
             case 6:
-                cout << "Enter output (i.e., block) timestamp to find: "; cin >> to_search;
+            {
+                cout << "Enter output (i.e., block) timestamp to find: ";
+                cin >> to_search;
                 cout << "Searching for: <" << to_search << ">" << endl;
-
 
                 uint64_t out_timestamp = boost::lexical_cast<uint64_t>(to_search);
 
                 vector<xmreg::output_info> out_infos;
 
-                if (mylmdb.get_output_info(out_timestamp, out_infos))
-                {
+                if (mylmdb.get_output_info(out_timestamp, out_infos)) {
                     cout << " - following outputs were found:" << endl;
 
-                    for (const auto& out_info: out_infos)
-                    {
+                    for (const auto &out_info: out_infos) {
                         cout << "   - " << out_info << endl;
                     }
                 }
@@ -301,9 +301,39 @@ int main(int ac, const char* av[])  {
                          << "were found." << endl;
                 }
 
-
                 break;
-        }
+            }
+            case 7:
+            {
+                cout << "Enter block timestamp to find: ";
+                cin >> to_search;
+                cout << "Searching for: <" << to_search << ">" << endl;
+
+                // block timestamps are same as outputs obviously, so we
+                // can use this info for this purpose
+                uint64_t blk_timestamp = boost::lexical_cast<uint64_t>(to_search);
+
+                vector<xmreg::output_info> out_infos2;
+
+                if (mylmdb.get_output_info(blk_timestamp, out_infos2)) {
+                    // since many outputs can be in a single block
+                    // just get the first one to obtained its block
+
+                    uint64_t found_blk_height = core_storage->get_db()
+                            .get_tx_block_height(out_infos2.at(0).tx_hash);
+
+                    cout << " - following timestamp was found for block no:"
+                         << found_blk_height
+                         << endl;
+                }
+                else
+                {
+                    cout << "No block with timestamp of " << blk_timestamp
+                         << "was found." << endl;
+                }
+            }
+
+        } // switch (what_to_search)
 
         if (search_enabled)
         {
@@ -323,7 +353,6 @@ int main(int ac, const char* av[])  {
                 cout << "." << flush;
                 std::this_thread::sleep_for(std::chrono::seconds(3));
             }
-
         }
 
         cout << endl;
