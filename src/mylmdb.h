@@ -35,11 +35,11 @@ namespace xmreg
 
     std::ostream& operator<<(std::ostream& os, const output_info&  out_info)
     {
-         os  << ", out_pub_key: " << out_info.out_pub_key
-             << ", tx_hash: " << out_info.tx_hash
-             << ", tx_pub_key: " << out_info.tx_pub_key
-             << ", amount: " << XMR_AMOUNT(out_info.amount)
-             << ", index_in_tx: " << out_info.index_in_tx;
+        os  << ", out_pub_key: " << out_info.out_pub_key
+            << ", tx_hash: " << out_info.tx_hash
+            << ", tx_pub_key: " << out_info.tx_pub_key
+            << ", amount: " << XMR_AMOUNT(out_info.amount)
+            << ", index_in_tx: " << out_info.index_in_tx;
 
         return os;
     }
@@ -150,7 +150,7 @@ namespace xmreg
             string tx_hash_str = pod_to_hex(tx_hash);
 
             vector<tuple<txout_to_key, uint64_t, uint64_t>> outputs =
-                                    xmreg::get_ouputs_tuple(tx);
+                    xmreg::get_ouputs_tuple(tx);
 
             lmdb::txn wtxn  {nullptr};
             lmdb::dbi wdbi1 {0};
@@ -478,10 +478,7 @@ namespace xmreg
                                       sizeof(key_timestamp)};
                 lmdb::val info_val;
 
-
-
                 lmdb::cursor cr = lmdb::cursor::open(rtxn, rdbi);
-
 
                 // set cursor the the first item
                 if (cr.get(key_to_find, info_val, MDB_SET_RANGE))
@@ -515,7 +512,7 @@ namespace xmreg
         bool
         get_output_info_range(uint64_t key_timestamp_start,
                               uint64_t key_timestamp_end,
-                              vector<output_info>& out_infos,
+                              vector<pair<uint64_t, output_info>>& out_infos,
                               const string& db_name = "output_info")
         {
 
@@ -523,7 +520,6 @@ namespace xmreg
 
             try
             {
-
                 lmdb::txn rtxn  = lmdb::txn::begin(m_env, nullptr, MDB_RDONLY);
                 lmdb::dbi rdbi  = lmdb::dbi::open(rtxn, db_name.c_str(), flags);
 
@@ -531,28 +527,38 @@ namespace xmreg
                                       sizeof(key_timestamp_start)};
                 lmdb::val info_val;
 
-
-
                 lmdb::cursor cr = lmdb::cursor::open(rtxn, rdbi);
 
                 uint64_t current_timestamp = key_timestamp_start;
 
-
                 // set cursor the the first item
                 if (cr.get(key_to_find, info_val, MDB_SET_RANGE))
                 {
-                    out_infos.push_back(*(info_val.data<output_info>()));
+
+                    current_timestamp = *key_to_find.data<uint64_t>();
+
+                    if (current_timestamp > key_timestamp_end)
+                    {
+                        return false;
+                    }
+
+                    out_infos.push_back(make_pair(
+                            current_timestamp,
+                            *(info_val.data<output_info>())));
 
                     // process other values for the same key
                     while (cr.get(key_to_find, info_val, MDB_NEXT))
                     {
                         current_timestamp = *key_to_find.data<uint64_t>();
-                        //cout << current_timestamp << endl;
-                        out_infos.push_back(*(info_val.data<output_info>()));
+
                         if (current_timestamp > key_timestamp_end)
                         {
                             break;
                         }
+
+                        out_infos.push_back(make_pair(
+                                current_timestamp,
+                                *(info_val.data<output_info>())));
                     }
                 }
                 else
@@ -571,6 +577,50 @@ namespace xmreg
 
             return true;
         }
+
+        /**
+         * Returns sorted and unique tx hashes withing a
+         * given timestamp range
+         *
+         * @param key_timestamp_start
+         * @param key_timestamp_end
+         * @param out_txs
+         * @return bool
+         */
+        bool
+        get_txs_from_timestamp_range(uint64_t key_timestamp_start,
+                                     uint64_t key_timestamp_end,
+                                     vector<crypto::hash>& out_txs)
+        {
+            using output_pair = pair<uint64_t, output_info>;
+
+            auto sort_by_timestamp = [](const output_pair& l,
+                                        const output_pair& r)
+            {
+                return l.first < r.first;
+            };
+
+            vector<output_pair> out_infos;
+
+            if (get_output_info_range(key_timestamp_start,
+                                      key_timestamp_end,
+                                      out_infos))
+            {
+
+                set<output_pair, decltype(sort_by_timestamp)> unique_txs(sort_by_timestamp);
+
+                for (auto oi: out_infos)
+                    unique_txs.insert(oi);
+
+                for (auto ut: unique_txs)
+                    out_txs.push_back(ut.second.tx_hash);
+
+                return true;
+            }
+
+            return false;
+        }
+
 
 
         void
@@ -683,7 +733,7 @@ namespace xmreg
                 return height;
             }
 
-            cout << height << endl;
+            //cout << height << endl;
 
             return height;
 
