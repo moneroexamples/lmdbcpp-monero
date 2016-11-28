@@ -351,7 +351,7 @@ int main(int ac, const char* av[])  {
                 uint64_t blk_timestamp_end   = boost::lexical_cast<uint64_t>(to_search_end);
 
 
-                vector<xmreg::output_info> out_infos2;
+                vector<pair<uint64_t, xmreg::output_info>> out_infos2;
 
                 if (mylmdb.get_output_info_range(blk_timestamp_start, blk_timestamp_end, out_infos2))
                 {
@@ -360,7 +360,7 @@ int main(int ac, const char* av[])  {
 
                     for (const auto &out_info: out_infos2)
                     {
-                        cout << "   - " << out_info << endl;
+                        cout << "   - " << out_info.second << endl;
                     }
                 }
             }
