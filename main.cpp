@@ -125,8 +125,18 @@ int main(int ac, const char* av[])  {
             }
             catch (std::exception &e)
             {
-                cerr << e.what() << endl;
-                return 1;
+                cout << e.what()
+                     << "Wait 60 seconds and try again ";
+
+                for (size_t i = 0; i < 20; ++i)
+                {
+                    cout << "." << flush;
+                    std::this_thread::sleep_for(std::chrono::seconds(3));
+                }
+
+                cout << endl;
+
+                continue;
             }
 
             // get all transactions in the block found
