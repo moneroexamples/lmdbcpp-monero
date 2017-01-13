@@ -287,8 +287,6 @@ int main(int ac, const char* av[])  {
 }
 ```
 
-
-
 ## Compile this example
 The dependencies are same as those for Monero, so I assume Monero compiles
 correctly. If so then to download and compile this example, the following
@@ -317,13 +315,30 @@ about 12GB!
 
 Once the database is constructed, the `xmrlmdbcpp`
 will run in a loop, with 60s breaks, to keep updating itself as new blocks
-are added to the Monero blockchain.
+are added to the Monero blockchain. There is default 10 blocks of delay.
+The reason is to minimize adding orphaned blocks in the custom lmdb database.
+The number 10 was chosen as default because this is a default number of blocks
+before funds get spendable in Monero.
 
 By default, the custom lmdb database will be located in `~/.bitmonero/lmdb2`
 folder.
 
 To run it in the background on a headless server,
 execute `xmrlmdbcpp` inside `screen` or `tmux` sessions.
+
+## Program options
+
+```bash
+./xmrlmdbcpp -h
+xmrlmdbcpp, save key_images and public_keys into a custom lmdb database:
+  -h [ --help ] [=arg(=1)] (=0)       produce help message
+  -b [ --bc-path ] arg                path to lmdb blockchain
+  -n [ --no-confirmations ] arg (=10) no of blocks before they are added to the
+                                      custom lmdb
+  -t [ --testnet ] [=arg(=1)] (=0)    is the address from testnet network
+  -s [ --search ] [=arg(=1)] (=0)     search for tx from user input
+```
+
 
 ## Example output
 
@@ -342,8 +357,6 @@ Wait for 60 seconds ....................
 Current blockchain height:1056842
 Wait for 60 seconds ........
 ```
-
-
 
 ## Other examples
 Other examples can be found on  [github](https://github.com/moneroexamples?tab=repositories).
