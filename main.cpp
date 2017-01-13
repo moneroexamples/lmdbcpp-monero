@@ -32,14 +32,15 @@ int main(int ac, const char* av[])  {
     }
 
     // get other options
-    auto bc_path_opt  = opts.get_option<string>("bc-path");
-    auto testnet_opt  = opts.get_option<bool>("testnet");
-    auto search_opt   = opts.get_option<bool>("search");
+    auto bc_path_opt          = opts.get_option<string>("bc-path");
+    auto testnet_opt          = opts.get_option<bool>("testnet");
+    auto search_opt           = opts.get_option<bool>("search");
+    auto no_confirmations_opt = opts.get_option<uint64_t>("no-confirmations");
 
 
-    bool testnet         = *testnet_opt;
-    bool search_enabled  = *search_opt;
-
+    bool testnet               = *testnet_opt;
+    bool search_enabled        = *search_opt;
+    uint64_t  no_confirmations = *no_confirmations_opt;
 
     path blockchain_path;
 
@@ -115,7 +116,7 @@ int main(int ac, const char* av[])  {
         cout << "Current blockchain height: " << height << endl;
 
 
-        for (uint64_t blk_height = start_height; blk_height < height; ++blk_height)
+        for (uint64_t blk_height = start_height; blk_height < height - no_confirmations; ++blk_height)
         {
             cryptonote::block blk;
 
@@ -153,7 +154,8 @@ int main(int ac, const char* av[])  {
 
             if (blk_height % 1 == 0)
             {
-                fmt::print("analyzing blk {:d}/{:d}\n", blk_height, height);
+                fmt::print("analyzing blk {:d}/{:d}. No of confirmatations for block is {:d} before they are added\n",
+                           blk_height, height, no_confirmations);
             }
 
             for (const cryptonote::transaction& tx : txs)
