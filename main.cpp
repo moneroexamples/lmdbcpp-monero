@@ -154,8 +154,8 @@ int main(int ac, const char* av[])  {
 
             if (blk_height % 1 == 0)
             {
-                fmt::print("analyzing blk {:d}/{:d}. No of confirmatations for block is {:d} before they are added\n",
-                           blk_height, height, no_confirmations);
+                fmt::print("analyzing blk {:d}/{:d}\n",
+                           blk_height, height);
             }
 
             for (const cryptonote::transaction& tx : txs)
