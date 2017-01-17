@@ -12,11 +12,6 @@ using boost::filesystem::path;
 
 using namespace std;
 
-// needed for log system of monero
-namespace epee {
-    unsigned int g_test_dbg_lock_sleep = 0;
-}
-
 int main(int ac, const char* av[])  {
 
 
@@ -53,8 +48,9 @@ int main(int ac, const char* av[])  {
 
     fmt::print("Blockchain path: {:s}\n", blockchain_path);
 
-    // enable basic monero log output
-    xmreg::enable_monero_log();
+    // set  monero log output level
+    uint32_t log_level = 0;
+    mlog_configure("", true);
 
     // create instance of our MicroCore
     // and make pointer to the Blockchain
