@@ -81,7 +81,7 @@ add_executable(${PROJECT_NAME}
 target_include_directories(${PROJECT_NAME}
         PUBLIC "${LMDB_INCLUDE}")
 
-target_link_libraries(${PROJECT_NAME}
+set(LIBRARIES
         myxrm
         myext
         cryptonote_core
@@ -95,5 +95,10 @@ target_link_libraries(${PROJECT_NAME}
         ${Boost_LIBRARIES}
         pthread
         unbound
-        unwind
         dl)
+
+if (!APPLE)
+        set(LIBRARIES ${LIBRARIES} unwind)
+endif()
+
+target_link_libraries(${PROJECT_NAME} ${LIBRARIES})
