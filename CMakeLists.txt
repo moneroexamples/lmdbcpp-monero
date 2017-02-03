@@ -6,7 +6,7 @@ set(PROJECT_NAME
 project(${PROJECT_NAME})
 
 set(CMAKE_CXX_FLAGS
-        "${CMAKE_CXX_FLAGS} -std=c++11")
+        "${CMAKE_CXX_FLAGS} -std=c++11 -fpermissive")
 
 # set location of monero static libraries
 set(MONERO_LIBS_DIR
@@ -31,8 +31,8 @@ add_library(blocks STATIC IMPORTED)
 set_property(TARGET blocks PROPERTY IMPORTED_LOCATION ${MONERO_LIBS_DIR}/libblocks.a)
 
 
-add_library(crypto STATIC IMPORTED)
-set_property(TARGET crypto
+add_library(cryptoxmr STATIC IMPORTED)
+set_property(TARGET cryptoxmr
         PROPERTY IMPORTED_LOCATION ${MONERO_LIBS_DIR}/libcrypto.a)
 
 
@@ -52,6 +52,9 @@ set_property(TARGET epee
 add_library(ringct STATIC IMPORTED)
 set_property(TARGET ringct
         PROPERTY IMPORTED_LOCATION ${MONERO_LIBS_DIR}/libringct.a)
+
+add_library(unbound STATIC IMPORTED)
+set_property(TARGET unbound PROPERTY IMPORTED_LOCATION ${MONERO_LIBS_DIR}/libunbound.a)
 
 # find boost
 find_package(Boost COMPONENTS
@@ -86,7 +89,7 @@ set(LIBRARIES
         myext
         cryptonote_core
         blockchain_db
-        crypto
+        cryptoxmr
         blocks
         lmdb
         ringct
@@ -95,10 +98,21 @@ set(LIBRARIES
         ${Boost_LIBRARIES}
         pthread
         unbound
-        dl)
+        crypto
+        ssl)
 
 if (!APPLE)
         set(LIBRARIES ${LIBRARIES} unwind)
+endif()
+
+if (WIN32)
+    set(LIBRARIES ${LIBRARIES}
+        wsock32
+        ntdll
+        ws2_32
+        Iphlpapi)
+else()
+    set(LIBRARIES ${LIBRARIES} dl)
 endif()
 
 target_link_libraries(${PROJECT_NAME} ${LIBRARIES})
