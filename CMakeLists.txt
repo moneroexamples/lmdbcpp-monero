@@ -53,8 +53,10 @@ add_library(ringct STATIC IMPORTED)
 set_property(TARGET ringct
         PROPERTY IMPORTED_LOCATION ${MONERO_LIBS_DIR}/libringct.a)
 
-add_library(unbound STATIC IMPORTED)
-set_property(TARGET unbound PROPERTY IMPORTED_LOCATION ${MONERO_LIBS_DIR}/libunbound.a)
+if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin" OR WIN32)
+    add_library(unbound STATIC IMPORTED)
+    set_property(TARGET unbound PROPERTY IMPORTED_LOCATION ${MONERO_LIBS_DIR}/libunbound.a)
+endif()
 
 # find boost
 find_package(Boost COMPONENTS
@@ -101,8 +103,8 @@ set(LIBRARIES
         crypto
         ssl)
 
-if (!APPLE)
-        set(LIBRARIES ${LIBRARIES} unwind)
+if (NOT ${CMAKE_SYSTEM_NAME} MATCHES "Darwin" AND NOT WIN32)
+    set(LIBRARIES ${LIBRARIES} unwind)
 endif()
 
 if (WIN32)

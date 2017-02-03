@@ -66,15 +66,15 @@ namespace xmreg
 
     // explicit instantiations of get_option template function
     template  boost::optional<string>
-    CmdLineOptions::get_option<string>(const string & opt_name) const;
+        CmdLineOptions::get_option<string>(const string & opt_name) const;
 
     template  boost::optional<bool>
-            CmdLineOptions::get_option<bool>(const string & opt_name) const;
+        CmdLineOptions::get_option<bool>(const string & opt_name) const;
 
     template  boost::optional<size_t>
-            CmdLineOptions::get_option<size_t>(const string & opt_name) const;
+        CmdLineOptions::get_option<size_t>(const string & opt_name) const;
 
     template  boost::optional<uint64_t>
-            CmdLineOptions::get_option<uint64_t>(const string & opt_name) const;
+        CmdLineOptions::get_option<uint64_t>(const string & opt_name) const;
 
 }
