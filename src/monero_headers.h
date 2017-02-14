@@ -8,7 +8,7 @@
 #define DB_LMDB   2
 #define BLOCKCHAIN_DB DB_LMDB
 
-#include "cryptonote_core/cryptonote_basic.h"
+
 #include "cryptonote_core/tx_pool.h"
 #include "cryptonote_core/blockchain.h"
 #include "blockchain_db/lmdb/db_lmdb.h"
