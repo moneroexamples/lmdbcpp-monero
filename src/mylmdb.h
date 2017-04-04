@@ -58,6 +58,7 @@ namespace xmreg
         uint64_t m_no_dbs;
 
         lmdb::env m_env;
+        lmdb::txn m_wtxn;
 
 
     public:
@@ -67,7 +68,7 @@ namespace xmreg
                 : m_db_path {_path},
                   m_mapsize {_mapsize},
                   m_no_dbs {_no_dbs},
-                  m_env {nullptr}
+                  m_env {nullptr}, m_wtxn {nullptr}
         {
             create_and_open_env();
         }
@@ -79,7 +80,7 @@ namespace xmreg
             {   m_env = lmdb::env::create();
                 m_env.set_mapsize(m_mapsize);
                 m_env.set_max_dbs(m_no_dbs);
-                m_env.open(m_db_path.c_str(), MDB_CREATE, 0664);
+                m_env.open(m_db_path.c_str(), MDB_CREATE|MDB_NOSYNC, 0664);
             }
             catch (lmdb::error& e )
             {
@@ -90,6 +91,50 @@ namespace xmreg
             return true;
         }
 
+        bool
+        sync()
+        {
+            try
+            {   m_env.sync();
+            }
+            catch (lmdb::error& e )
+            {
+                cerr << e.what() << endl;
+                return false;
+            }
+
+            return true;
+        }
+
+        bool
+        begin_txn()
+        {
+            try
+            {   m_wtxn = lmdb::txn::begin(m_env);
+            }
+            catch (lmdb::error& e )
+            {
+                cerr << e.what() << endl;
+                return false;
+            }
+
+            return true;
+        }
+
+        bool
+        end_txn()
+        {
+            try
+            {   m_wtxn.commit();
+            }
+            catch (lmdb::error& e )
+            {
+                cerr << e.what() << endl;
+                return false;
+            }
+
+            return true;
+        }
 
         bool
         write_key_images(const transaction& tx)
@@ -101,15 +146,13 @@ namespace xmreg
             vector<cryptonote::txin_to_key> key_images
                     = xmreg::get_key_images(tx);
 
-            lmdb::txn wtxn {nullptr};
             lmdb::dbi wdbi {0};
 
             unsigned int flags = MDB_CREATE | MDB_DUPSORT | MDB_DUPFIXED;
 
             try
             {
-                wtxn = lmdb::txn::begin(m_env);
-                wdbi  = lmdb::dbi::open(wtxn, "key_images", flags);
+                wdbi  = lmdb::dbi::open(m_wtxn, "key_images", flags);
             }
             catch (lmdb::error& e )
             {
@@ -124,19 +167,8 @@ namespace xmreg
                 lmdb::val key_img_val {key_img_str};
                 lmdb::val tx_hash_val {tx_hash_str};
 
-                wdbi.put(wtxn, key_img_val, tx_hash_val);
+                wdbi.put(m_wtxn, key_img_val, tx_hash_val);
             }
-
-            try
-            {
-                wtxn.commit();
-            }
-            catch (lmdb::error& e )
-            {
-                cerr << e.what() << endl;
-                return false;
-            }
-
             return true;
         }
 
@@ -152,7 +184,6 @@ namespace xmreg
             vector<tuple<txout_to_key, uint64_t, uint64_t>> outputs =
                     xmreg::get_ouputs_tuple(tx);
 
-            lmdb::txn wtxn  {nullptr};
             lmdb::dbi wdbi1 {0};
             lmdb::dbi wdbi2 {0};
             lmdb::dbi wdbi3 {0};
@@ -161,10 +192,9 @@ namespace xmreg
 
             try
             {
-                wtxn  = lmdb::txn::begin(m_env);
-                wdbi1 = lmdb::dbi::open(wtxn, "output_public_keys", flags);
-                wdbi2 = lmdb::dbi::open(wtxn, "output_amounts", flags);
-                wdbi3 = lmdb::dbi::open(wtxn, "output_info",
+                wdbi1 = lmdb::dbi::open(m_wtxn, "output_public_keys", flags);
+                wdbi2 = lmdb::dbi::open(m_wtxn, "output_amounts", flags);
+                wdbi3 = lmdb::dbi::open(m_wtxn, "output_info",
                                         flags | MDB_INTEGERKEY | MDB_INTEGERDUP);
             }
             catch (lmdb::error& e )
@@ -200,19 +230,9 @@ namespace xmreg
                 lmdb::val out_info_val          {static_cast<void*>(&out_info),
                                                  sizeof(out_info)};
 
-                wdbi1.put(wtxn, public_key_val, tx_hash_val);
-                wdbi2.put(wtxn, public_key_val, amount_val);
-                wdbi3.put(wtxn, out_timestamp_val, out_info_val);
-            }
-
-            try
-            {
-                wtxn.commit();
-            }
-            catch (lmdb::error& e )
-            {
-                cerr << e.what() << endl;
-                return false;
+                wdbi1.put(m_wtxn, public_key_val, tx_hash_val);
+                wdbi2.put(m_wtxn, public_key_val, amount_val);
+                wdbi3.put(m_wtxn, out_timestamp_val, out_info_val);
             }
 
             return true;
@@ -233,17 +253,14 @@ namespace xmreg
 
             try
             {
-                lmdb::txn wtxn = lmdb::txn::begin(m_env);
-                lmdb::dbi wdbi = lmdb::dbi::open(wtxn, "tx_public_keys", flags);
+                lmdb::dbi wdbi = lmdb::dbi::open(m_wtxn, "tx_public_keys", flags);
 
                 //cout << "Saving public_key: " << pk_str << endl;
 
                 lmdb::val public_key_val {pk_str};
                 lmdb::val tx_hash_val    {tx_hash_str};
 
-                wdbi.put(wtxn, public_key_val, tx_hash_val);
-
-                wtxn.commit();
+                wdbi.put(m_wtxn, public_key_val, tx_hash_val);
             }
             catch (lmdb::error& e)
             {
@@ -277,17 +294,14 @@ namespace xmreg
 
             try
             {
-                lmdb::txn wtxn = lmdb::txn::begin(m_env);
-                lmdb::dbi wdbi = lmdb::dbi::open(wtxn, "payments_id", flags);
+                lmdb::dbi wdbi = lmdb::dbi::open(m_wtxn, "payments_id", flags);
 
                 //cout << "Saving payiment_id: " << payment_id_str << endl;
 
                 lmdb::val payment_id_val {payment_id_str};
                 lmdb::val tx_hash_val    {tx_hash_str};
 
-                wdbi.put(wtxn, payment_id_val, tx_hash_val);
-
-                wtxn.commit();
+                wdbi.put(m_wtxn, payment_id_val, tx_hash_val);
             }
             catch (lmdb::error& e)
             {
@@ -321,8 +335,7 @@ namespace xmreg
 
             try
             {
-                lmdb::txn wtxn = lmdb::txn::begin(m_env);
-                lmdb::dbi wdbi = lmdb::dbi::open(wtxn, "encrypted_payments_id", flags);
+                lmdb::dbi wdbi = lmdb::dbi::open(m_wtxn, "encrypted_payments_id", flags);
 
                 //cout << "Saving encrypted payiment_id: " << payment_id_str << endl;
                 //string wait_for_enter;
@@ -331,9 +344,7 @@ namespace xmreg
                 lmdb::val payment_id_val {payment_id_str};
                 lmdb::val tx_hash_val    {tx_hash_str};
 
-                wdbi.put(wtxn, payment_id_val, tx_hash_val);
-
-                wtxn.commit();
+                wdbi.put(m_wtxn, payment_id_val, tx_hash_val);
             }
             catch (lmdb::error& e)
             {

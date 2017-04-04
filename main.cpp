@@ -154,6 +154,11 @@ int main(int ac, const char* av[])  {
                            blk_height, height);
             }
 
+            if (!mylmdb.begin_txn())
+            {
+                cerr << "begin_txn failed" << endl;
+                return 1;
+            }
             for (const cryptonote::transaction& tx : txs)
             {
                 crypto::hash tx_hash = get_transaction_hash(tx);
@@ -188,6 +193,11 @@ int main(int ac, const char* av[])  {
                     return 1;
                 }
             }
+            if (!mylmdb.end_txn())
+            {
+                cerr << "end_txn failed" << endl;
+                return 1;
+            }
 
             // save the height of just analyzed block into the last_height_file
             {
@@ -197,6 +207,11 @@ int main(int ac, const char* av[])  {
 
         } // for (uint64_t i = start_height; i < height; ++i)
 
+        if (!mylmdb.sync())
+        {
+            cerr << "env_sync failed" << endl;
+            return 1;
+        }
 
         uint64_t what_to_search {0};
 
