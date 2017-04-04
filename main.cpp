@@ -238,7 +238,7 @@ int main(int ac, const char* av[])  {
                 cout << "Enter key_image to find: "; cin >> to_search;
                 cout << "Searching for: <" << to_search << ">" << endl;
 
-                if(!mylmdb.search(to_search, found_txs, "key_images"))
+                if(!mylmdb.search(to_search, found_txs, mylmdb.D_key_images))
                 {
                     cout << " - not found" << endl;
                 }
@@ -249,7 +249,7 @@ int main(int ac, const char* av[])  {
                 cout << "Enter output public_key to find: "; cin >> to_search;
                 cout << "Searching for: <" << to_search << ">" << endl;
 
-                if(!mylmdb.search(to_search, found_txs,  "output_public_keys"))
+                if(!mylmdb.search(to_search, found_txs,  mylmdb.D_output_public_keys))
                 {
                     cout << " - not found" << endl;
                 }
@@ -274,7 +274,7 @@ int main(int ac, const char* av[])  {
                 cout << "Enter tx public key to find: "; cin >> to_search;
                 cout << "Searching for: <" << to_search << ">" << endl;
 
-                if(!mylmdb.search(to_search, found_txs,  "tx_public_keys"))
+                if(!mylmdb.search(to_search, found_txs,  mylmdb.D_tx_public_keys))
                 {
                     cout << " - not found" << endl;
                 }
@@ -285,7 +285,7 @@ int main(int ac, const char* av[])  {
                 cout << "Enter tx payment_id to find: "; cin >> to_search;
                 cout << "Searching for: <" << to_search << ">" << endl;
 
-                if(!mylmdb.search(to_search, found_txs,  "payments_id"))
+                if(!mylmdb.search(to_search, found_txs,  mylmdb.D_payments_id))
                 {
                     cout << " - not found" << endl;
                 }
@@ -295,7 +295,7 @@ int main(int ac, const char* av[])  {
                 cout << "Enter encrypted tx payment_id to find: "; cin >> to_search;
                 cout << "Searching for: <" << to_search << ">" << endl;
 
-                if(!mylmdb.search(to_search, found_txs,  "encrypted_payments_id"))
+                if(!mylmdb.search(to_search, found_txs,  mylmdb.D_encrypted_payments_id))
                 {
                     cout << " - not found" << endl;
                 }
