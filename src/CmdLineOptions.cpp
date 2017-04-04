@@ -71,9 +71,6 @@ namespace xmreg
     template  boost::optional<bool>
         CmdLineOptions::get_option<bool>(const string & opt_name) const;
 
-    template  boost::optional<size_t>
-        CmdLineOptions::get_option<size_t>(const string & opt_name) const;
-
     template  boost::optional<uint64_t>
         CmdLineOptions::get_option<uint64_t>(const string & opt_name) const;
 
