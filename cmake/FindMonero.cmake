@@ -34,8 +34,6 @@ set(LIBS common;blocks;cryptonote_basic;cryptonote_core;
 
 set(Xmr_INCLUDE_DIRS "${CPP_MONERO_DIR}")
 
-# if the project is a subset of main cpp-ethereum project
-# use same pattern for variables as Boost uses
 
 foreach (l ${LIBS})
 

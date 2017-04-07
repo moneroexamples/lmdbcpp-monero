@@ -2,10 +2,9 @@
 #include "src/CmdLineOptions.h"
 #include "src/mylmdb.h"
 
-#include "ext/format.h"
-#include "ext/lmdb++.h"
+#include "ext/fmt/ostream.h"
+#include "ext/fmt/format.h"
 
-#include <thread>
 
 using epee::string_tools::pod_to_hex;
 using boost::filesystem::path;
