@@ -162,31 +162,40 @@ int main(int ac, const char* av[])  {
             {
                 crypto::hash tx_hash = get_transaction_hash(tx);
 
-                if (!mylmdb.write_key_images(tx))
+                uint64_t tx_id {0}; // tx index in blockchain lmdb database
+
+                if (!core_storage->get_db().tx_exists(tx_hash, tx_id))
+                {
+                    cerr << "faild getting tx_id for tx of hash " << tx_hash << endl;
+                    return 1;
+                }
+
+
+                if (!mylmdb.write_key_images(tx_id, tx))
                 {
                     cerr << "write_key_images failed in tx " << tx_hash << endl;
                     return 1;
                 }
 
-                if (!mylmdb.write_output_public_keys(tx, blk))
+                if (!mylmdb.write_output_public_keys(tx_id, tx, blk))
                 {
                     cerr << "write_output_public_keys failed in tx " << tx_hash << endl;
                     return 1;
                 }
 
-                if (!mylmdb.write_tx_public_key(tx))
+                if (!mylmdb.write_tx_public_key(tx_id, tx))
                 {
                     cerr << "write_tx_public_key failed in tx " << tx_hash << endl;
                     return 1;
                 }
 
-                if (!mylmdb.write_payment_id(tx))
+                if (!mylmdb.write_payment_id(tx_id, tx))
                 {
                     cerr << "write_payment_id failed in tx " << tx_hash << endl;
                     return 1;
                 }
 
-                if (!mylmdb.write_encrypted_payment_id(tx))
+                if (!mylmdb.write_encrypted_payment_id(tx_id, tx))
                 {
                     cerr << "write_payment_id failed in tx " << tx_hash << endl;
                     return 1;
@@ -227,7 +236,7 @@ int main(int ac, const char* av[])  {
         }
 
 
-        vector<string> found_txs;
+        vector<uint64_t > found_txs;
 
         string to_search;
 
@@ -344,12 +353,15 @@ int main(int ac, const char* av[])  {
                     // since many outputs can be in a single block
                     // just get the first one to obtained its block
 
-                    uint64_t found_blk_height = core_storage->get_db()
-                            .get_tx_block_height(out_infos2.at(0).tx_hash);
+                    uint64_t tx_id = out_infos2.at(0).tx_id;
 
-                    cout << " - following timestamp was found for block no:"
-                         << found_blk_height
-                         << endl;
+                    //@todo How to get tx from tx_id?
+//                    uint64_t found_blk_height = core_storage->get_db()
+//                            .get_tx_block_height(out_infos2.at(0).tx_hash);
+//
+//                    cout << " - following timestamp was found for block no:"
+//                         << found_blk_height
+//                         << endl;
                 }
                 else
                 {
@@ -392,9 +404,9 @@ int main(int ac, const char* av[])  {
         {
             cout << "Found " << found_txs.size() << " tx:" << endl;
 
-            for (const string& found_tx: found_txs)
+            for (const uint64_t& found_tx_id: found_txs)
             {
-                fmt::print(" - tx hash: {:s}\n", found_tx);
+                fmt::print(" - tx hash: {:d}\n", found_tx_id);
             }
         }
         else

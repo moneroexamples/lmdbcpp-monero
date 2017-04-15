@@ -71,7 +71,7 @@ add_executable(${PROJECT_NAME}
         ${SOURCE_FILES})
 
 set(LIBRARIES
-        myxrm
+        myxmr
         myext
         blockchain_db
         cryptonote_core
