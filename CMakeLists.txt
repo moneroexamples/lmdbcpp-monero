@@ -83,6 +83,7 @@ set(LIBRARIES
         ringct
         common
         epee
+        easylogging
         ${Boost_LIBRARIES}
         pthread
         unbound

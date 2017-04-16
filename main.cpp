@@ -170,6 +170,16 @@ int main(int ac, const char* av[])  {
                     return 1;
                 }
 
+//                cryptonote::transaction tx_from_id;
+//                crypto::hash tx_hash_from_id;
+//
+//                if (!xmreg::MyLMDB::get_tx_with_tx_id(tx_id, tx_from_id, tx_hash_from_id))
+//                {
+//                    cerr << "faild getting tx using tx_id " << tx_id << endl;
+//                    return 1;
+//                }
+//
+//                cout << tx_id << " " << tx_hash << " " << tx_hash_from_id << endl;
 
                 if (!mylmdb.write_key_images(tx_id, tx))
                 {

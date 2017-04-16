@@ -17,6 +17,11 @@ namespace xmreg
 
     using namespace std;
 
+    struct txindex {
+        crypto::hash key;
+        tx_data_t data;
+    };
+
     /**
      * Stores info about outputs useful
      * for checking which ouputs belong to a
@@ -689,6 +694,58 @@ namespace xmreg
 
             return height;
 
+        }
+
+        static bool
+        get_tx_with_tx_id(uint64_t tx_id,
+                          transaction& tx,
+                          crypto::hash& tx_hash,
+                          string blk_path = "/home/mwo/.bitmonero/lmdb")
+        {
+
+            try
+            {
+                auto env = lmdb::env::create();
+                env.set_mapsize(DEFAULT_MAPSIZE * 3);
+                env.set_max_dbs(20);
+                env.open(blk_path.c_str(), MDB_CREATE, 0664);
+
+                auto rtxn = lmdb::txn::begin(env, nullptr, MDB_RDONLY);
+                auto rdbi = lmdb::dbi::open(rtxn, "txs");
+
+                lmdb::val tx_id_val {static_cast<void*>(&tx_id), sizeof(tx_id)};
+
+                lmdb::val result_val;
+
+                rdbi.get(rtxn, tx_id_val, result_val);
+
+                string tx_blob {result_val.data(), result_val.size()};
+
+                crypto::hash tx_prefix_hash;
+
+                if (!parse_and_validate_tx_from_blob(tx_blob, tx, tx_hash, tx_prefix_hash))
+                {
+                    cerr << "Failed to parse transaction from blob" << endl;
+                    rtxn.abort();
+                    return false;
+                }
+
+                (void) tx_prefix_hash; // not using this.
+
+                rtxn.abort();
+            }
+            catch (lmdb::error& e)
+            {
+                cerr << e.what() << endl;
+                return false;
+            }
+            catch (exception& e)
+            {
+                cerr << e.what() << endl;
+                return false;
+            }
+
+            return true;
         }
 
         string
