@@ -11,6 +11,21 @@ using boost::filesystem::path;
 
 using namespace std;
 
+// adapted from cpp-ethereum
+class ExitHandler
+{
+public:
+    void exit() { exitHandler(0); }
+    static void exitHandler(int) { s_shouldExit = true; }
+    bool shouldExit() const { return s_shouldExit; }
+
+private:
+    static bool s_shouldExit;
+};
+
+bool ExitHandler::s_shouldExit = false;
+
+
 int main(int ac, const char* av[])  {
 
 
@@ -89,11 +104,16 @@ int main(int ac, const char* av[])  {
     // instance of MyLMDB class that interacts with the custom database
     xmreg::MyLMDB mylmdb {mylmdb_location.string()};
 
+    ExitHandler exitHandler;
+
+    signal(SIGABRT, &ExitHandler::exitHandler);
+    signal(SIGTERM, &ExitHandler::exitHandler);
+    signal(SIGINT, &ExitHandler::exitHandler);
 
     // the infinte loop that first reads all tx in the blockchain
     // and then makes an interation every 60s to process new
     // blockchain in the real time as they come
-    while (true)
+    while (!exitHandler.shouldExit())
     {
 
         string last_height_str = xmreg::read(last_height_file.string());
@@ -103,7 +123,6 @@ int main(int ac, const char* av[])  {
             boost::trim(last_height_str);
             start_height = boost::lexical_cast<uint64_t>(last_height_str) + 1;
         }
-
 
         // get the current blockchain height. Just to check
         uint64_t height =  xmreg::MyLMDB::get_blockchain_height(blockchain_path.string());
@@ -179,7 +198,13 @@ int main(int ac, const char* av[])  {
 //                    return 1;
 //                }
 //
-//                cout << tx_id << " " << tx_hash << " " << tx_hash_from_id << endl;
+//                if (tx_hash != tx_hash_from_id)
+//                {
+//                    cerr << tx_id << " " << tx_hash << " " << tx_hash_from_id << endl;
+//                    return 1;
+//                }
+
+
 
                 if (!mylmdb.write_key_images(tx_id, tx))
                 {

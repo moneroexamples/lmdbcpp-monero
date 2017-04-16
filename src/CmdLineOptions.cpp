@@ -23,7 +23,7 @@ namespace xmreg
                  "produce help message")
                 ("bc-path,b", value<string>(),
                  "path to lmdb blockchain")
-                ("no-confirmations,n", value<uint64_t>()->default_value(10),
+                ("no-confirmations,n", value<uint64_t>()->default_value(5),
                  "no of blocks before they are added to the custom lmdb")
                 ("testnet,t",  value<bool>()->default_value(false)->implicit_value(true),
                  "is the address from testnet network")
