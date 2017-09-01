@@ -77,12 +77,13 @@ set(LIBRARIES
         cryptonote_core
         cryptonote_protocol
         cryptonote_basic
-        cryptoxmr
+        cncrypto
         blocks
         lmdb
         ringct
         common
         epee
+        easylogging
         ${Boost_LIBRARIES}
         pthread
         unbound

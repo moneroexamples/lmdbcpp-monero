@@ -24,15 +24,35 @@ available in the blockchain:
 - `output_info` - key: output timestamp as uint64; value: struct {out_pub_key as public_key,
 tx_hash as hash, tx_pub_key as public_key, amount as uint64_t, index_in_tx as uint64_t}
 
-## Prerequisite
 
-Everything here was done and tested using Monero 10.3 on Xubuntu 16.04 x86_64.
+## Example compilation on Ubuntu 16.04 
 
-Instruction for Monero 10.3 compilation:
- - [Compile Monero 0.9 on Ubuntu 16.04 x64](https://github.com/moneroexamples/compile-monero-09-on-ubuntu-16-04)
+Below are example and basic instructions on how to setup up and run Open Monero on Ubuntu 16.04. 
+For other Linux operating systems, the instructions are analogical. 
 
+#### Monero download and compilation
 
-## Compile this example
+Download and compile  Monero into your home folder:
+
+```bash
+# first install monero dependecines
+sudo apt update
+
+sudo apt install git build-essential cmake libboost-all-dev miniupnpc libunbound-dev graphviz doxygen libunwind8-dev pkg-config libssl-dev libcurl4-openssl-dev libgtest-dev libreadline-dev
+
+# go to home folder 
+cd ~
+
+# get latest development version of monero. Monero changes so fast
+# that if something breaks during compilation of open monero, please make an issue
+git clone https://github.com/monero-project/monero
+
+cd monero/
+
+make
+```
+
+#### Compile this example
 The dependencies are same as those for Monero, so I assume Monero compiles
 correctly. If so then to download and compile this example, the following
 steps can be executed:

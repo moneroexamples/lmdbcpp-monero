@@ -4,7 +4,7 @@ project(myext)
 
 set(SOURCE_HEADERS
         minicsv.h
-        fmt/format.h
+        format.h
         dateparser.h)
 
 set(SOURCE_FILES
